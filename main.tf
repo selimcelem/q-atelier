@@ -10,10 +10,10 @@ terraform {
   backend "s3" {
     # Populated after running bootstrap/
     # Fill in after bootstrap apply outputs
-    bucket         = "" # e.g. "q-atelier-terraform-state"
+    bucket         = "q-atelier-terraform-state"
     key            = "prod/terraform.tfstate"
-    region         = "" # e.g. "eu-west-1"
-    dynamodb_table = "" # e.g. "q-atelier-terraform-lock"
+    region         = "eu-west-1"
+    dynamodb_table = "q-atelier-terraform-lock"
     encrypt        = true
   }
 }

@@ -3,8 +3,14 @@ variable "bookings_table_arn"  { type = string }
 variable "bookings_table_name" { type = string }
 variable "ses_topic_arn"       { type = string }
 variable "sns_topic_arn"       { type = string }
-variable "sibel_email"         { type = string, sensitive = true }
-variable "ses_from_email"      { type = string, sensitive = true }
+variable "sibel_email" {
+  type      = string
+  sensitive = true
+}
+variable "ses_from_email" {
+  type      = string
+  sensitive = true
+}
 
 # ── IAM role for Lambda ───────────────────────────────────────────
 resource "aws_iam_role" "lambda" {

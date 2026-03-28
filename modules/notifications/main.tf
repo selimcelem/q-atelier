@@ -1,7 +1,16 @@
 variable "project_name"   { type = string }
-variable "sibel_email"    { type = string, sensitive = true }
-variable "sibel_phone"    { type = string, sensitive = true }
-variable "ses_from_email" { type = string, sensitive = true }
+variable "sibel_email" {
+  type      = string
+  sensitive = true
+}
+variable "sibel_phone" {
+  type      = string
+  sensitive = true
+}
+variable "ses_from_email" {
+  type      = string
+  sensitive = true
+}
 
 # ── SES email identity ────────────────────────────────────────────
 # Verifies the sender address. Sibel will get a verification email.
