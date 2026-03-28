@@ -1,0 +1,9 @@
+# Copy this file to terraform.tfvars and fill in your values
+# NEVER commit terraform.tfvars to git
+
+aws_region     = "eu-west-1"
+project_name   = "q-atelier"
+domain_name    = "q-atelier.nl"
+sibel_email    = "q.atelier89@gmail.com"
+sibel_phone    = "+31612345678"
+ses_from_email = "q.atelier89@gmail.com"

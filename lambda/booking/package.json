@@ -1,0 +1,11 @@
+{
+  "name": "q-atelier-booking-lambda",
+  "version": "1.0.0",
+  "description": "Booking handler for Q-Atelier",
+  "main": "index.js",
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.0.0",
+    "@aws-sdk/client-ses": "^3.0.0",
+    "@aws-sdk/client-sns": "^3.0.0"
+  }
+}
