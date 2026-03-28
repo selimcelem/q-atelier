@@ -44,5 +44,5 @@ resource "aws_dynamodb_table" "bookings" {
   }
 }
 
-output "bookings_table_arn"  { value = aws_dynamodb_table.bookings.arn }
+output "bookings_table_arn" { value = aws_dynamodb_table.bookings.arn }
 output "bookings_table_name" { value = aws_dynamodb_table.bookings.name }

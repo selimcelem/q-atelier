@@ -1,8 +1,8 @@
-variable "project_name"        { type = string }
-variable "bookings_table_arn"  { type = string }
+variable "project_name" { type = string }
+variable "bookings_table_arn" { type = string }
 variable "bookings_table_name" { type = string }
-variable "ses_topic_arn"       { type = string }
-variable "sns_topic_arn"       { type = string }
+variable "ses_topic_arn" { type = string }
+variable "sns_topic_arn" { type = string }
 variable "sibel_email" {
   type      = string
   sensitive = true
@@ -182,7 +182,7 @@ resource "aws_api_gateway_integration_response" "booking_options" {
 # Deployment
 resource "aws_api_gateway_deployment" "api" {
   rest_api_id = aws_api_gateway_rest_api.api.id
-  depends_on  = [
+  depends_on = [
     aws_api_gateway_integration.slots_get,
     aws_api_gateway_integration.booking_post,
     aws_api_gateway_integration.booking_options,
@@ -209,5 +209,5 @@ resource "aws_lambda_permission" "api_gateway" {
 }
 
 output "api_endpoint" {
-  value = "${aws_api_gateway_stage.prod.invoke_url}"
+  value = aws_api_gateway_stage.prod.invoke_url
 }

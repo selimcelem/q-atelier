@@ -8,7 +8,7 @@ terraform {
 }
 
 variable "project_name" { type = string }
-variable "domain_name"  { type = string }
+variable "domain_name" { type = string }
 
 # ── S3 bucket (private, served only via CloudFront) ───────────────
 resource "aws_s3_bucket" "site" {
@@ -30,10 +30,10 @@ resource "aws_s3_bucket_versioning" "site" {
 
 # ── ACM certificate (must be us-east-1 for CloudFront) ───────────
 resource "aws_acm_certificate" "site" {
-  provider          = aws.us_east_1
-  domain_name       = var.domain_name
+  provider                  = aws.us_east_1
+  domain_name               = var.domain_name
   subject_alternative_names = ["www.${var.domain_name}"]
-  validation_method = "DNS"
+  validation_method         = "DNS"
 
   lifecycle { create_before_destroy = true }
 }
@@ -79,14 +79,14 @@ resource "aws_cloudfront_distribution" "site" {
 
   # SPA-style routing: serve index.html on 403/404
   custom_error_response {
-    error_code            = 403
-    response_code         = 200
-    response_page_path    = "/index.html"
+    error_code         = 403
+    response_code      = 200
+    response_page_path = "/index.html"
   }
   custom_error_response {
-    error_code            = 404
-    response_code         = 200
-    response_page_path    = "/index.html"
+    error_code         = 404
+    response_code      = 200
+    response_page_path = "/index.html"
   }
 
   restrictions {
@@ -122,10 +122,10 @@ resource "aws_s3_bucket_policy" "site" {
   })
 }
 
-output "cloudfront_domain"          { value = aws_cloudfront_distribution.site.domain_name }
+output "cloudfront_domain" { value = aws_cloudfront_distribution.site.domain_name }
 output "cloudfront_distribution_id" { value = aws_cloudfront_distribution.site.id }
-output "site_bucket_name"           { value = aws_s3_bucket.site.bucket }
-output "acm_cert_validation_cname"  {
+output "site_bucket_name" { value = aws_s3_bucket.site.bucket }
+output "acm_cert_validation_cname" {
   value       = aws_acm_certificate.site.domain_validation_options
   description = "Add these CNAME records to your DNS to validate the SSL cert"
 }

@@ -1,4 +1,4 @@
-variable "project_name"   { type = string }
+variable "project_name" { type = string }
 variable "sibel_email" {
   type      = string
   sensitive = true

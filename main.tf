@@ -45,20 +45,20 @@ module "database" {
 }
 
 module "notifications" {
-  source             = "./modules/notifications"
-  project_name       = var.project_name
-  sibel_email        = var.sibel_email
-  sibel_phone        = var.sibel_phone
-  ses_from_email     = var.ses_from_email
+  source         = "./modules/notifications"
+  project_name   = var.project_name
+  sibel_email    = var.sibel_email
+  sibel_phone    = var.sibel_phone
+  ses_from_email = var.ses_from_email
 }
 
 module "api" {
-  source             = "./modules/api"
-  project_name       = var.project_name
-  bookings_table_arn = module.database.bookings_table_arn
+  source              = "./modules/api"
+  project_name        = var.project_name
+  bookings_table_arn  = module.database.bookings_table_arn
   bookings_table_name = module.database.bookings_table_name
-  ses_topic_arn      = module.notifications.ses_topic_arn
-  sns_topic_arn      = module.notifications.sns_topic_arn
-  sibel_email        = var.sibel_email
-  ses_from_email     = var.ses_from_email
+  ses_topic_arn       = module.notifications.ses_topic_arn
+  sns_topic_arn       = module.notifications.sns_topic_arn
+  sibel_email         = var.sibel_email
+  ses_from_email      = var.ses_from_email
 }
