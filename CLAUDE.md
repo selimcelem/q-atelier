@@ -72,98 +72,161 @@ Work through these tasks completely and autonomously. Make reasonable decisions 
 stopping to ask questions. Never add Co-authored-by or any Claude/Anthropic attribution
 to commits. Commit after each completed task with a descriptive message.
 
----
-
-### Task 1 — Redesign the frontend
-
-Sibel's feedback: current design is too vanilla. She wants romantic, chique, elegant.
-Think high-end Parisian bridal boutique. Not generic small business.
-
-Redesign frontend/public/index.html, frontend/public/style.css, frontend/public/main.js completely.
-
-IMPORTANT CONSTRAINTS:
-- NO external images — Unsplash URLs don't load reliably on CloudFront. CSS only.
-- NO broken layouts — test every section renders correctly before deploying
-- Keep window.API_ENDPOINT exactly as it is — never change this value
-- Keep all booking logic in main.js exactly as it is — only restyle, never break functionality
-
-Design direction:
-- Typography: Cormorant Garamond (serif, italic for headlines) + Jost for body — Google Fonts
-- Colors: ivory/cream background (#FAF8F5), dusty rose accent (#C9A99A),
-  champagne gold details (#B8973E), deep charcoal text (#2C2623)
-- Buttons: thin bordered, minimal, elegant hover effects
-- Generous whitespace, refined details
-- Think: Vera Wang website aesthetic
-
-Sections:
-1. Header — sticky, minimal. Logo left "Q — Atelier" in Cormorant Garamond.
-   Nav right: Home, Diensten, Over ons, Afspraak. Thin dusty rose bottom border.
-
-2. Hero — full viewport height. CSS only, no image.
-   Warm cream background with subtle decorative elements (CSS borders, thin lines).
-   Large italic Cormorant Garamond headline: "De perfecte pasvorm voor jouw droomjurk."
-   Subline in Jost light: "Thuisatelier in Zeist — maatwerk met zorg en precisie"
-   CTA button: "Plan een afspraak" — thin bordered, dusty rose
-
-3. Intro strip — 3 columns, elegant icons (unicode or CSS), short text:
-   "Persoonlijke begeleiding" / "Vakkundige pasvorm" / "Bruidsjurk specialist"
-
-4. Services — 3 cards, CSS only, no images.
-   Each card: decorative top border in dusty rose, serif heading, short description.
-   - Bruidsjurk vermaken & aanpassen
-   - Dagelijkse kleding repareren
-   - Maatwerk op aanvraag
-
-5. Over ons — text only, no image. Warm personal intro about Sibel.
-   Decorative divider line. Italic pull quote in Cormorant Garamond.
-
-6. Booking section #afspraak — keep ALL existing functionality from main.js.
-   Restyle only: Cormorant Garamond month/year header, cream date cards,
-   faded booked slots, dusty rose selected state, elegant form fields.
-
-7. Contact — address, phone, email, Instagram link, WhatsApp button.
-   Clean minimal layout.
-
-8. Footer — one line. "© 2026 Q-Atelier — Zeist" centered.
+Read REQUIREMENTS.md fully before starting — it contains the complete Phase 3 spec.
 
 ---
 
-### Task 2 — Deploy
+### Task 1 — Update DynamoDB schema
 
-Sync to S3:
+In modules/database/main.tf, add a new GSI to the bookings table:
+- GSI name: token-index
+- Hash key: token (S)
+- Projection: ALL
+
+Run terraform apply after updating.
+
+---
+
+### Task 2 — Update Lambda: POST /booking (PENDING flow)
+
+In lambda/booking/index.js, change POST /booking so that:
+- Booking is written to DynamoDB with status: PENDING (not auto-confirmed)
+- A unique token (UUID) is generated and stored with the booking
+- token_expires_at is set to 7 days from now (Unix timestamp)
+- Sibel receives an email with:
+  - Customer details: naam, email, telefoon, datum, tijdstip, service
+  - Three action links (use the API Gateway endpoint as base URL):
+    - Accepteren: GET /action?token=TOKEN&action=accept
+    - Nieuw tijdstip voorstellen: GET /reschedule?token=TOKEN
+    - Afwijzen: GET /action?token=TOKEN&action=reject
+  - Subject: "Nieuwe afspraak aanvraag — [naam] op [datum] om [tijdstip]"
+- Sibel receives SMS: "Nieuwe afspraak aanvraag: [naam] op [datum] om [tijdstip] voor [service]. Check je mail."
+- Customer receives email:
+  - Subject: "Uw afspraak aanvraag bij Q-Atelier is ontvangen"
+  - Body: "Beste [naam], wij hebben uw aanvraag ontvangen en nemen zo snel mogelijk contact op ter bevestiging."
+- Return 200 with message: "Aanvraag ontvangen"
+
+---
+
+### Task 3 — New Lambda endpoints
+
+Add these routes to lambda/booking/index.js:
+
+#### GET /action?token=TOKEN&action=accept|reject
+
+- Look up booking by token using token-index GSI
+- Validate token exists and not expired
+- Validate token not already used
+
+If action=accept:
+- Update DynamoDB status → CONFIRMED
+- Send customer confirmation email with .ics attachment (same as original confirmation)
+- Send Sibel email: "Je hebt de afspraak van [naam] op [datum] om [tijdstip] bevestigd."
+- Return HTML page: "Afspraak bevestigd. [naam] ontvangt een bevestiging per e-mail."
+
+If action=reject:
+- Update DynamoDB status → CANCELLED
+- Send customer email:
+  "Beste [naam], helaas kunnen wij uw afspraak op dit moment niet bevestigen.
+  Sibel neemt zo snel mogelijk contact met u op."
+  Include customer phone number and email in Sibel's copy.
+- Send Sibel email with customer naam, email, telefoon, WhatsApp link
+- Return HTML page: "Afspraak afgewezen. De klant wordt op de hoogte gesteld."
+
+#### GET /reschedule?token=TOKEN
+
+- Look up and validate booking by token
+- Return a simple HTML page (inline in Lambda response) with:
+  - Booking details shown at top
+  - Date picker input (type=date, min=today)
+  - Time slot dropdown: 10:00, 11:00, 13:00, 14:00, 15:00, 16:00
+  - Submit button posting to POST /reschedule
+  - Styled simply — cream background, readable, mobile friendly
+
+#### POST /reschedule (form submission from above page)
+
+- Parse token, new_date, new_time_slot from form body
+- Validate token, validate new slot not already booked
+- Update DynamoDB: status → RESCHEDULED, suggested_date, suggested_time_slot
+- Generate new customer_token (UUID) for customer response links
+- Send customer email:
+  - "Beste [naam], helaas is Sibel op [originele datum] om [originele tijdstip] niet beschikbaar."
+  - "Sibel stelt voor: [nieuwe datum] om [nieuwe tijdstip]."
+  - Two buttons:
+    - Accepteren: GET /respond?token=CUSTOMER_TOKEN&action=accept
+    - Afwijzen: GET /respond?token=CUSTOMER_TOKEN&action=reject
+- Send Sibel email: "Je hebt een nieuw tijdstip voorgesteld aan [naam]: [nieuwe datum] om [nieuwe tijdstip]."
+- Return HTML page: "Nieuw tijdstip voorgesteld. De klant ontvangt een e-mail."
+
+#### GET /respond?token=CUSTOMER_TOKEN&action=accept|reject
+
+- Look up booking by token
+- Validate token, not expired, not used
+
+If action=accept:
+- Update DynamoDB status → CONFIRMED
+- Customer gets confirmation email with .ics for the NEW suggested date/time
+- Sibel gets email: "[naam] heeft het nieuwe tijdstip geaccepteerd: [nieuwe datum] om [nieuwe tijdstip]." + .ics
+- Return HTML: "Bevestigd! U ontvangt een bevestiging per e-mail."
+
+If action=reject:
+- Update DynamoDB status → CANCELLED
+- Customer gets email: "Helaas. Neem contact op met Sibel via [phone] of [email] om een passend tijdstip te vinden."
+- Sibel gets email: "[naam] heeft het nieuwe tijdstip afgewezen."
+  Include: naam, email, telefoon, WhatsApp link: https://api.whatsapp.com/send?phone=[phone]
+- Return HTML: "Begrepen. Sibel neemt contact met u op."
+
+---
+
+### Task 4 — Add new API Gateway routes
+
+In modules/api/main.tf add:
+- GET /action
+- GET /reschedule
+- POST /reschedule
+- GET /respond
+
+All routed to the same Lambda function. Add OPTIONS methods with CORS for POST /reschedule.
+Run terraform apply after updating.
+
+---
+
+### Task 5 — Update frontend success message
+
+In frontend/public/main.js, change the success message after booking from:
+"Bedankt! Check je e-mail voor de bevestiging."
+to:
+"Bedankt voor uw aanvraag! Sibel bevestigt uw afspraak zo snel mogelijk per e-mail."
+
+Redeploy frontend to S3 and invalidate CloudFront cache.
+
+---
+
+### Task 6 — Package and deploy Lambda
 ```bash
-aws s3 sync frontend/public/ s3://q-atelier-site --delete \
-  --cache-control "max-age=31536000" --exclude "*.html"
-aws s3 sync frontend/public/ s3://q-atelier-site --delete \
-  --cache-control "no-cache" --include "*.html"
+cd lambda/booking
+npm install uuid
+cd ../..
+Compress-Archive -Path "lambda/booking/*" -DestinationPath "lambda-booking.zip" -Force
+aws lambda update-function-code --function-name q-atelier-booking --zip-file fileb://lambda-booking.zip --region eu-west-1
 ```
 
-Invalidate CloudFront cache:
-```bash
-aws cloudfront create-invalidation \
-  --distribution-id E2LJC4OK76HPZO \
-  --paths "/*"
-```
+---
+
+### Task 7 — Update BUILD_LOG.md
+
+Document Phase 3 implementation:
+- Manual booking flow: PENDING → ACCEPT/REJECT/RESCHEDULE
+- Token-based secure action links (UUID, 7 day expiry)
+- New endpoints: GET /action, GET /reschedule, POST /reschedule, GET /respond
+- DynamoDB token-index GSI added
+- Frontend success message updated
 
 ---
 
-### Task 3 — Update BUILD_LOG.md
-
-Document everything that happened today:
-- ACM cert validated after adding CNAME records to Vimexx DNS
-- CloudFront deployed with real SSL cert and domain aliases (q-atelier.nl + www)
-- CI/CD fully green — Terraform plan/apply + frontend deploy both passing
-- SES sandbox still active — production access blocked until domain verified via DNS
-- First redesign attempt failed — Unsplash images not loading, layout broken
-- Second redesign: CSS-only approach, no external images
-- CloudFront test URL: dyshhxdimbjli.cloudfront.net
-- JouwWeb still live on q-atelier.nl — DNS cutover NOT done, waiting for Sibel approval
-
----
-
-### Task 4 — Commit
+### Task 8 — Commit everything
 ```bash
 git add .
-git commit -m "feat: elegant CSS-only bridal redesign"
+git commit -m "feat: Phase 3 manual booking confirmation flow"
 git push origin main
 ```
