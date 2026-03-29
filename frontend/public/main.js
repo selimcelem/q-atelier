@@ -1,14 +1,20 @@
 /* ── Mobile nav toggle ──────────────────────────────────── */
-(() => {
-  const toggle = document.getElementById('navToggle');
-  const links = document.getElementById('navLinks');
-  if (toggle && links) {
-    toggle.addEventListener('click', () => links.classList.toggle('open'));
-    links.querySelectorAll('a').forEach(a =>
-      a.addEventListener('click', () => links.classList.remove('open'))
-    );
+document.addEventListener('DOMContentLoaded', function() {
+  var toggle = document.getElementById('navToggle');
+  var links = document.getElementById('navLinks');
+  if (!toggle || !links) return;
+  toggle.addEventListener('click', function(e) {
+    e.preventDefault();
+    e.stopPropagation();
+    links.classList.toggle('open');
+  });
+  var navAnchors = links.querySelectorAll('a');
+  for (var i = 0; i < navAnchors.length; i++) {
+    navAnchors[i].addEventListener('click', function() {
+      links.classList.remove('open');
+    });
   }
-})();
+});
 
 /* ── Booking logic ─────────────────────────────────────── */
 (() => {

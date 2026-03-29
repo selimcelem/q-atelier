@@ -77,9 +77,11 @@ nav {
   background: none;
   border: none;
   cursor: pointer;
-  padding: 0.4rem;
+  padding: 0.5rem;
   flex-direction: column;
   gap: 5px;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
 }
 .nav-toggle span {
   display: block;
@@ -659,6 +661,7 @@ footer {
     top: 100%;
     left: 0;
     right: 0;
+    z-index: 200;
     background: var(--ivory);
     flex-direction: column;
     align-items: center;
