@@ -5,39 +5,130 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Q-Atelier — Bruidsjurk vermaken in Zeist</title>
   <meta name="description" content="Q-Atelier in Zeist verzorgt professionele aanpassingen en maatwerk aan bruidsjurken. Plan eenvoudig een afspraak." />
-
-  <!-- TODO Phase 3: JSON-LD structured data goes here -->
-
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@400;600;700&family=Inter:wght@300;400;500;600&display=swap" rel="stylesheet" />
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
   <header>
     <nav>
-      <span class="logo">Q-Atelier</span>
-      <a href="#afspraak">Plan een afspraak</a>
+      <a href="#" class="logo">Q-Atelier</a>
+      <div class="nav-links">
+        <a href="#home">Home</a>
+        <a href="#diensten">Diensten</a>
+        <a href="#afspraak">Afspraak</a>
+        <a href="#contact">Contact</a>
+      </div>
     </nav>
   </header>
 
   <main>
-    <section class="hero">
-      <h1>De perfecte pasvorm voor jouw droomjurk.</h1>
-      <p>Professioneel maatwerk en aanpassingen aan bruidsjurken in Zeist.</p>
-      <a href="#afspraak" class="btn">Plan een afspraak</a>
+    <section id="home" class="hero">
+      <div class="hero-content">
+        <h1>De perfecte pasvorm voor jouw droomjurk</h1>
+        <p>Professioneel maatwerk en aanpassingen aan bruidsjurken in Zeist.</p>
+        <a href="#afspraak" class="btn">Plan een afspraak</a>
+      </div>
     </section>
 
-    <!-- TODO Phase 2: Booking calendar component goes here -->
-    <section id="afspraak">
+    <section id="diensten" class="services">
+      <h2>Onze Diensten</h2>
+      <div class="services-grid">
+        <div class="service-card">
+          <div class="service-icon">&#10022;</div>
+          <h3>Bruidsjurk vermaken</h3>
+          <p>Deskundige aanpassingen aan uw bruidsjurk voor de perfecte pasvorm op uw grote dag.</p>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">&#9986;</div>
+          <h3>Dagelijkse kleding repareren</h3>
+          <p>Van innemen tot verlengen — wij geven uw favoriete kleding een nieuw leven.</p>
+        </div>
+        <div class="service-card">
+          <div class="service-icon">&#9997;</div>
+          <h3>Maatwerk op aanvraag</h3>
+          <p>Unieke creaties en aanpassingen geheel naar uw wensen.</p>
+        </div>
+      </div>
+    </section>
+
+    <section id="afspraak" class="booking">
       <h2>Afspraak maken</h2>
-      <p>Binnenkort kunt u hier direct een afspraak inplannen.</p>
+      <p class="booking-intro">Kies een datum en tijdstip dat u het beste uitkomt.</p>
+
+      <div class="calendar-container">
+        <div class="calendar-header">
+          <button class="cal-nav" id="prevMonth" aria-label="Vorige maand">&larr;</button>
+          <h3 id="calendarTitle"></h3>
+          <button class="cal-nav" id="nextMonth" aria-label="Volgende maand">&rarr;</button>
+        </div>
+        <div class="calendar-weekdays">
+          <span>Ma</span><span>Di</span><span>Wo</span><span>Do</span><span>Vr</span><span>Za</span><span>Zo</span>
+        </div>
+        <div class="calendar-grid" id="calendarGrid"></div>
+        <div class="calendar-loading" id="calendarLoading">Laden...</div>
+      </div>
+
+      <div class="timeslots-container" id="timeslotsContainer" style="display:none;">
+        <h3 id="timeslotsTitle"></h3>
+        <div class="timeslots-grid" id="timeslotsGrid"></div>
+      </div>
+
+      <div class="booking-form-container" id="bookingFormContainer" style="display:none;">
+        <h3 id="bookingFormTitle"></h3>
+        <form id="bookingForm">
+          <div class="form-group">
+            <label for="fieldName">Naam</label>
+            <input type="text" id="fieldName" name="name" required />
+          </div>
+          <div class="form-group">
+            <label for="fieldEmail">E-mailadres</label>
+            <input type="email" id="fieldEmail" name="email" required />
+          </div>
+          <div class="form-group">
+            <label for="fieldPhone">Telefoonnummer</label>
+            <input type="tel" id="fieldPhone" name="phone" required />
+          </div>
+          <div class="form-group">
+            <label for="fieldService">Service</label>
+            <select id="fieldService" name="service" required>
+              <option value="">Kies een service...</option>
+              <option value="Bruidsjurk vermaken">Bruidsjurk vermaken</option>
+              <option value="Dagelijkse kleding repareren">Dagelijkse kleding repareren</option>
+              <option value="Maatwerk op aanvraag">Maatwerk op aanvraag</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-submit">Afspraak bevestigen</button>
+        </form>
+      </div>
+
+      <div class="booking-message" id="bookingMessage" style="display:none;"></div>
+    </section>
+
+    <section id="contact" class="contact">
+      <h2>Contact</h2>
+      <div class="contact-grid">
+        <div class="contact-info">
+          <p><strong>Adres</strong><br />Laan van Vollenhove 159<br />3706 CD Zeist, Nederland</p>
+          <p><strong>Telefoon</strong><br /><a href="tel:+31685569551">+31 6 85 56 95 51</a></p>
+          <p><strong>E-mail</strong><br /><a href="mailto:q.atelier89@gmail.com">q.atelier89@gmail.com</a></p>
+          <p><strong>Openingstijden</strong><br />Maandag t/m zaterdag: 08:00 – 19:00<br />Zondag: gesloten</p>
+        </div>
+        <div class="contact-links">
+          <a href="https://instagram.com/q_atelier_" target="_blank" rel="noopener" class="social-link">Instagram</a>
+          <a href="https://api.whatsapp.com/send?phone=31685569551" target="_blank" rel="noopener" class="social-link">WhatsApp</a>
+        </div>
+      </div>
     </section>
   </main>
 
   <footer>
+    <p>&copy; 2026 Q-Atelier — Sibel Celem</p>
     <p>Laan van Vollenhove 159, 3706 CD Zeist</p>
-    <p><a href="mailto:q.atelier89@gmail.com">q.atelier89@gmail.com</a></p>
-    <p>+31 6 85 56 95 51</p>
   </footer>
 
+  <script>window.API_ENDPOINT = "REPLACE_WITH_API_ENDPOINT";</script>
   <script src="main.js"></script>
 </body>
 </html>
