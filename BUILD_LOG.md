@@ -151,8 +151,9 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - Deployed to S3 + CloudFront cache invalidated
 
 ### SES status
-- SES sandbox still active — production access blocked until domain verified via DNS
-- Email sending works within sandbox (verified addresses only)
+- Domain `q-atelier.nl` verified via DKIM in SES
+- SES production access requested — awaiting AWS approval
+- Until approved, email sending limited to verified addresses only (sandbox mode)
 
 ### DNS status
 - CloudFront test URL: `dyshhxdimbjli.cloudfront.net` — live and serving the new design
