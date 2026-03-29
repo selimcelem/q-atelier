@@ -1,188 +1,55 @@
-# CLAUDE.md — Q-Atelier Project Context
-
-This file is read automatically by Claude Code. Read it fully before doing anything.
-
-## What this is
-
-A production AWS static site + booking system for q-atelier.nl, a bridal dress tailoring
-atelier in Zeist, Netherlands. Built with Terraform + vanilla JS. Also a portfolio project
-for the developer (AWS SAA-C03 candidate, career switching from BIM to Cloud Engineering).
-
-## Stack
-
-- IaC: Terraform (remote state on S3, lock on DynamoDB)
-- Hosting: S3 + CloudFront + ACM (CloudFront pending DNS validation — do not touch)
-- API: API Gateway + Lambda (Node.js 20) — DEPLOYED
-- Database: DynamoDB — DEPLOYED
-- Email: SES with .ics attachment — DEPLOYED
-- SMS: SNS — DEPLOYED
-- Frontend: Vanilla HTML/CSS/JS (no build tooling)
-- Language: Dutch (nl)
-
-## What is already deployed in AWS
-
-- S3 bucket: q-atelier-site
-- DynamoDB table: q-atelier-bookings
-- API Gateway: q-atelier-api (stage: prod)
-- Lambda: q-atelier-booking (stub — needs implementation)
-- SES identity: q.atelier89@gmail.com (verified)
-- SNS topic: q-atelier-booking-alerts
-- IAM role: q-atelier-lambda-role
-
-## What is NOT deployed yet
-
-- CloudFront distribution — blocked on ACM cert DNS validation, do not touch this
-
 ## TONIGHT'S MISSION
 
 Work through these tasks completely and autonomously. Make reasonable decisions without
-stopping to ask questions. Commit after each completed task with a descriptive message.
+stopping to ask questions. Never add Co-authored-by or any Claude/Anthropic attribution
+to commits. Commit after each completed task with a descriptive message.
 
 ---
 
-### Task 1 — Implement Lambda: GET /slots
+### Task 1 — Redesign the frontend
 
-File: lambda/booking/index.js
+Sibel's feedback: the current design is too vanilla. She wants romantic, chique, elegant.
+Think high-end Parisian bridal boutique. Not generic small business.
 
-GET /slots?month=YYYY-MM
+Redesign frontend/public/index.html, frontend/public/style.css, frontend/public/main.js completely.
 
-- Query DynamoDB table q-atelier-bookings using the month-index GSI
-- month attribute format: YYYY-MM
-- Return all slots for the requested month as JSON:
-  {
-    "2026-04-10": {
-      "10:00": "booked",
-      "11:00": "available",
-      "13:00": "available"
-    }
-  }
-- Default available slots Mon-Sat: 10:00, 11:00, 13:00, 14:00, 15:00, 16:00
-- Sunday always closed
-- If a slot exists in DynamoDB it is "booked", otherwise "available"
-- Return CORS headers on all responses
+Design direction:
+- Typography: Cormorant Garamond (serif, italic for headlines) + Jost or similar clean sans for body
+  Load from Google Fonts
+- Colors: deep ivory/cream background (#FAF8F5), dusty rose accents (#C9A99A),
+  champagne gold details (#B8973E), deep charcoal text (#2C2623)
+- Layout: full-width hero with elegant overlay text, generous whitespace, refined details
+- Buttons: thin bordered, minimal, elegant hover effects
+- Calendar: keep functionality exactly the same, just restyle to match
+- NO gradients, NO drop shadows everywhere, NO generic stock photo layouts
+- Think: Vera Wang website, not Vistaprint
 
----
-
-### Task 2 — Implement Lambda: POST /booking
-
-File: lambda/booking/index.js
-
-POST /booking with JSON body:
-{
-  "name": "string",
-  "email": "string",
-  "phone": "string",
-  "date": "YYYY-MM-DD",
-  "time_slot": "HH:MM",
-  "service": "string"
-}
-
-- Validate all fields present and non-empty
-- Validate date is not in the past
-- Validate day is not Sunday
-- Validate time_slot is one of the allowed slots
-- Write to DynamoDB with condition expression to prevent double booking
-  (ConditionExpression: "attribute_not_exists(date) AND attribute_not_exists(time_slot)")
-- Set month attribute to YYYY-MM (for GSI)
-- Set expires_at to Unix timestamp 1 year from now (for TTL)
-- Generate .ics file content (see Task 3)
-- Send SES raw email with .ics attachment to BOTH customer and Sibel
-- Publish SNS SMS to Sibel: "Nieuwe afspraak: [name] op [date] om [time_slot] voor [service]"
-- Return 200 on success, 409 if slot already booked, 400 on validation error
-
----
-
-### Task 3 — .ics generator
-
-File: lambda/booking/ics.js
-
-Create a helper module that generates iCalendar (.ics) content.
-- Event summary: "Afspraak Q-Atelier — [service]"
-- Location: Laan van Vollenhove 159, 3706 CD Zeist
-- Duration: 60 minutes
-- Include ORGANIZER: q.atelier89@gmail.com
-- Include ATTENDEE: customer email
-- Use DTSTART/DTEND in UTC
-- Return as string
-
----
-
-### Task 4 — SES email helper
-
-File: lambda/booking/email.js
-
-Create a helper that sends a raw MIME email with .ics attachment via SES.
-- To: customer email
-- BCC: q.atelier89@gmail.com
-- From: q.atelier89@gmail.com
-- Subject: "Bevestiging afspraak Q-Atelier — [date] om [time_slot]"
-- Body (Dutch):
-  "Beste [name], hierbij de bevestiging van uw afspraak bij Q-Atelier.
-  Datum: [date], Tijd: [time_slot], Service: [service].
-  Adres: Laan van Vollenhove 159, 3706 CD Zeist.
-  Tot dan! — Sibel, Q-Atelier"
-- Attach the .ics file as calendar invite
-- Content-Type: text/calendar; method=REQUEST
-
----
-
-### Task 5 — Frontend booking calendar
-
-File: frontend/public/index.html + frontend/public/style.css + frontend/public/main.js
-
-Build the full site. Design: warm, elegant, bridal. Dutch language throughout.
-
-Pages/sections on index.html:
-1. Header with logo "Q-Atelier" and nav (Home, Diensten, Afspraak)
-2. Hero section: "De perfecte pasvorm voor jouw droomjurk" with CTA button
-3. Services section: three cards
-   - Bruidsjurk vermaken (main service)
+Sections (keep all existing content and functionality):
+1. Header — minimal, logo left "Q — Atelier", nav right (Home, Diensten, Afspraak)
+   Thin top border in dusty rose
+2. Hero — full viewport height, elegant headline in Cormorant Garamond italic,
+   "De perfecte pasvorm voor jouw droomjurk."
+   Subline: "Thuisatelier in Zeist — maatwerk met zorg en precisie"
+   CTA button: "Plan een afspraak" — thin border style
+   Background: warm cream with a subtle linen texture feel (CSS only, no images)
+3. Services — three elegant cards, minimal borders, serif headings
+   - Bruidsjurk vermaken & aanpassen
    - Dagelijkse kleding repareren
    - Maatwerk op aanvraag
-4. Booking section (#afspraak):
-   - Month navigation (prev/next arrows)
-   - Calendar grid showing current month
-   - Available dates clickable, booked dates greyed out, past dates greyed out
-   - On date click: show time slot picker for that date
-   - On slot click: show booking form
-   - Booking form fields: Naam, E-mailadres, Telefoonnummer, Service (dropdown)
-   - Submit button: "Afspraak bevestigen"
-   - On success: show "Bedankt! Check je e-mail voor de bevestiging."
-   - On 409: show "Dit tijdstip is helaas al bezet. Kies een ander tijdstip."
-5. Contact section: address, phone, email, Instagram link
-6. Footer
+4. Booking section — same functionality, elegant restyled calendar
+   Month/year in Cormorant Garamond, available dates subtle cream cards,
+   booked dates very faded, selected date in dusty rose
+5. Contact — clean, minimal, address + phone + email + Instagram + WhatsApp
+6. Footer — minimal, one line, copyright
 
-In main.js:
-- On calendar load: fetch GET /slots?month=YYYY-MM from API
-- Read API endpoint from window.API_ENDPOINT (set in a <script> tag in index.html)
-- Handle loading states and errors gracefully
-
-In index.html add this script tag (Claude Code fills in the real value from terraform output):
-<script>window.API_ENDPOINT = "REPLACE_WITH_API_ENDPOINT";</script>
+Keep window.API_ENDPOINT exactly as it is — do not change the API endpoint value.
+Keep all booking logic in main.js exactly as it is — only restyle, do not break functionality.
 
 ---
 
-### Task 6 — Get API endpoint and update frontend
+### Task 2 — Deploy
 
-Run: terraform output api_endpoint
-Set the real value as window.API_ENDPOINT in frontend/public/index.html
-
----
-
-### Task 7 — Deploy Lambda and frontend to AWS
-
-Package and deploy the Lambda:
-```bash
-cd lambda/booking
-npm install
-zip -r ../../lambda-booking.zip .
-aws lambda update-function-code \
-  --function-name q-atelier-booking \
-  --zip-file fileb://../../lambda-booking.zip \
-  --region eu-west-1
-```
-
-Sync frontend to S3:
+Sync the redesigned frontend to S3:
 ```bash
 aws s3 sync frontend/public/ s3://q-atelier-site --delete \
   --cache-control "max-age=31536000" --exclude "*.html"
@@ -190,36 +57,30 @@ aws s3 sync frontend/public/ s3://q-atelier-site --delete \
   --cache-control "no-cache" --include "*.html"
 ```
 
----
-
-### Task 8 — Commit everything
+Invalidate CloudFront cache:
 ```bash
-git add .
-git commit -m "feat: complete Phase 2 — Lambda implementation and frontend booking calendar"
-git push origin main
+aws cloudfront create-invalidation \
+  --distribution-id E2LJC4OK76HPZO \
+  --paths "/*"
 ```
 
 ---
 
-## Conventions
+### Task 3 — Update BUILD_LOG.md
 
-- All user-facing text in Dutch
-- IAM least-privilege, no hardcoded secrets
-- .ics format for calendar invites (not CSV)
-- Appointment duration: 60 minutes
-- Available slots: Mon-Sat 10:00 11:00 13:00 14:00 15:00 16:00
-- Sunday: closed
-- Never add Co-authored-by lines to commits
-- Never add any Claude or Anthropic attribution to commit messages
+Document everything that happened today:
+- ACM cert validated after adding CNAME records to Vimexx DNS
+- CloudFront deployed with real SSL cert and domain aliases
+- CI/CD fully green (both Terraform and frontend deploy)
+- SES sandbox still active — production access blocked until domain verified
+- Frontend redesign completed
+- Temporary CloudFront test URL: dyshhxdimbjli.cloudfront.net
 
-## Business details (use these in the frontend)
+---
 
-Name: Q-Atelier
-Owner: Sibel Celem
-Address: Laan van Vollenhove 159, 3706 CD Zeist, Nederland
-Phone: +31 6 85 56 95 51
-Email: q.atelier89@gmail.com
-Instagram: https://instagram.com/q_atelier_
-WhatsApp: https://api.whatsapp.com/send?phone=31685569551
-Opening hours: maandag t/m zaterdag 08:00 – 19:00, zondag gesloten
-KVK: unknown — leave blank for now
+### Task 4 — Commit everything
+```bash
+git add .
+git commit -m "feat: romantic bridal redesign of frontend"
+git push origin main
+```
