@@ -76,52 +76,61 @@ to commits. Commit after each completed task with a descriptive message.
 
 ### Task 1 — Redesign the frontend
 
-Sibel's feedback: the current design is too vanilla. She wants romantic, chique, elegant.
+Sibel's feedback: current design is too vanilla. She wants romantic, chique, elegant.
 Think high-end Parisian bridal boutique. Not generic small business.
 
 Redesign frontend/public/index.html, frontend/public/style.css, frontend/public/main.js completely.
 
+IMPORTANT CONSTRAINTS:
+- NO external images — Unsplash URLs don't load reliably on CloudFront. CSS only.
+- NO broken layouts — test every section renders correctly before deploying
+- Keep window.API_ENDPOINT exactly as it is — never change this value
+- Keep all booking logic in main.js exactly as it is — only restyle, never break functionality
+
 Design direction:
-- Typography: Cormorant Garamond (serif, italic for headlines) + Jost or similar clean sans for body
-  Load from Google Fonts
-- Colors: deep ivory/cream background (#FAF8F5), dusty rose accents (#C9A99A),
+- Typography: Cormorant Garamond (serif, italic for headlines) + Jost for body — Google Fonts
+- Colors: ivory/cream background (#FAF8F5), dusty rose accent (#C9A99A),
   champagne gold details (#B8973E), deep charcoal text (#2C2623)
-- Layout: full-width hero with elegant overlay text, generous whitespace, refined details
 - Buttons: thin bordered, minimal, elegant hover effects
-- Calendar: keep functionality exactly the same, just restyle to match
-- NO gradients, NO drop shadows everywhere, NO generic stock photo layouts
-- Think: Vera Wang website, not Vistaprint
+- Generous whitespace, refined details
+- Think: Vera Wang website aesthetic
 
-Sections (keep all existing content and functionality):
-1. Header — minimal, logo left "Q — Atelier", nav right (Home, Diensten, Afspraak)
-   Thin top border in dusty rose
-2. Hero — full viewport height, elegant headline in Cormorant Garamond italic,
-   "De perfecte pasvorm voor jouw droomjurk."
-   Subline: "Thuisatelier in Zeist — maatwerk met zorg en precisie"
-   CTA button: "Plan een afspraak" — thin border style
-   Background: use this Unsplash image as hero background:
-   https://images.unsplash.com/photo-1519741497674-611481863552?w=1600
-   Dark overlay on top so text is readable
-3. Services — three elegant cards with images
-   - Bruidsjurk vermaken: https://images.unsplash.com/photo-1594552072238-b8a33785b6cd?w=800
-   - Dagelijkse kleding repareren: https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=800
-   - Maatwerk op aanvraag: https://images.unsplash.com/photo-1556905055-8f358a7a47b2?w=800
-4. Over ons — short intro about Sibel and the atelier, warm and personal tone
-   Image: https://images.unsplash.com/photo-1597940303711-b1f3b8a4c7e4?w=800
-5. Booking section — same functionality, elegant restyled calendar
-   Month/year in Cormorant Garamond, available dates subtle cream cards,
-   booked dates very faded, selected date in dusty rose
-6. Contact — clean, minimal, address + phone + email + Instagram + WhatsApp
-7. Footer — minimal, one line, copyright Q-Atelier 2026
+Sections:
+1. Header — sticky, minimal. Logo left "Q — Atelier" in Cormorant Garamond.
+   Nav right: Home, Diensten, Over ons, Afspraak. Thin dusty rose bottom border.
 
-Keep window.API_ENDPOINT exactly as it is — do not change the API endpoint value.
-Keep all booking logic in main.js exactly as it is — only restyle, do not break functionality.
+2. Hero — full viewport height. CSS only, no image.
+   Warm cream background with subtle decorative elements (CSS borders, thin lines).
+   Large italic Cormorant Garamond headline: "De perfecte pasvorm voor jouw droomjurk."
+   Subline in Jost light: "Thuisatelier in Zeist — maatwerk met zorg en precisie"
+   CTA button: "Plan een afspraak" — thin bordered, dusty rose
+
+3. Intro strip — 3 columns, elegant icons (unicode or CSS), short text:
+   "Persoonlijke begeleiding" / "Vakkundige pasvorm" / "Bruidsjurk specialist"
+
+4. Services — 3 cards, CSS only, no images.
+   Each card: decorative top border in dusty rose, serif heading, short description.
+   - Bruidsjurk vermaken & aanpassen
+   - Dagelijkse kleding repareren
+   - Maatwerk op aanvraag
+
+5. Over ons — text only, no image. Warm personal intro about Sibel.
+   Decorative divider line. Italic pull quote in Cormorant Garamond.
+
+6. Booking section #afspraak — keep ALL existing functionality from main.js.
+   Restyle only: Cormorant Garamond month/year header, cream date cards,
+   faded booked slots, dusty rose selected state, elegant form fields.
+
+7. Contact — address, phone, email, Instagram link, WhatsApp button.
+   Clean minimal layout.
+
+8. Footer — one line. "© 2026 Q-Atelier — Zeist" centered.
 
 ---
 
 ### Task 2 — Deploy
 
-Sync the redesigned frontend to S3:
+Sync to S3:
 ```bash
 aws s3 sync frontend/public/ s3://q-atelier-site --delete \
   --cache-control "max-age=31536000" --exclude "*.html"
@@ -144,16 +153,17 @@ Document everything that happened today:
 - ACM cert validated after adding CNAME records to Vimexx DNS
 - CloudFront deployed with real SSL cert and domain aliases (q-atelier.nl + www)
 - CI/CD fully green — Terraform plan/apply + frontend deploy both passing
-- SES sandbox still active — production access blocked until domain is verified via DNS
-- Frontend redesign completed — romantic bridal aesthetic
-- CloudFront test URL: dyshhxdimbjli.cloudfront.net (JouwWeb still live on q-atelier.nl)
-- DNS cutover to CloudFront NOT done yet — waiting for Sibel approval
+- SES sandbox still active — production access blocked until domain verified via DNS
+- First redesign attempt failed — Unsplash images not loading, layout broken
+- Second redesign: CSS-only approach, no external images
+- CloudFront test URL: dyshhxdimbjli.cloudfront.net
+- JouwWeb still live on q-atelier.nl — DNS cutover NOT done, waiting for Sibel approval
 
 ---
 
-### Task 4 — Commit everything
+### Task 4 — Commit
 ```bash
 git add .
-git commit -m "feat: romantic bridal redesign with placeholder images"
+git commit -m "feat: elegant CSS-only bridal redesign"
 git push origin main
 ```
