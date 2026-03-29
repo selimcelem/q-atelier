@@ -120,14 +120,36 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ---
 
-## TODO — next sessions
+## Phase 3 — SSL, CloudFront & Redesign (2026-03-29)
 
-### When Sibel's registrar is known
-- [ ] Add ACM validation CNAME records at registrar
-- [ ] Wait for cert to show "Issued" (~5 min)
-- [ ] Re-run `terraform apply` — CloudFront should deploy successfully
-- [ ] Add `SITE_BUCKET_NAME` and `CLOUDFRONT_DISTRIBUTION_ID` to GitHub Actions secrets
-- [ ] Point domain DNS (A/CNAME) at CloudFront distribution
+### ACM certificate validated
+- Sibel's domain registrar is Vimexx
+- Added ACM DNS validation CNAME records to Vimexx DNS panel
+- Certificate status changed to "Issued" in AWS Certificate Manager (us-east-1)
+
+### CloudFront deployed with SSL
+- CloudFront distribution `E2LJC4OK76HPZO` deployed with real ACM certificate
+- Domain aliases configured for `q-atelier.nl` and `www.q-atelier.nl`
+- Temporary test URL: `dyshhxdimbjli.cloudfront.net`
+- CI/CD fully green — both Terraform and frontend deploy pipelines passing
+
+### Frontend romantic redesign
+- Complete redesign of `index.html`, `style.css`, `main.js`
+- Typography: Cormorant Garamond (italic serif headlines) + Jost (clean sans body)
+- Palette: deep ivory (#FAF8F5), dusty rose (#C9A99A), champagne gold (#B8973E), charcoal (#2C2623)
+- Full-viewport hero with subtle linen texture (CSS-only), thin-bordered elegant buttons
+- Service cards with minimal borders, italic serif headings
+- Calendar restyled to match — dusty rose selection, faded booked dates, cream available dates
+- All booking logic preserved unchanged
+- Deployed to S3 + CloudFront cache invalidated
+
+### SES status
+- SES sandbox still active — production access request blocked until domain is fully verified
+- Email sending works within sandbox (verified addresses only)
+
+---
+
+## TODO — next sessions
 
 ### Phase 3 — SEO
 - [ ] JSON-LD LocalBusiness structured data
