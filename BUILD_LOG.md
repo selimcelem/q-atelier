@@ -133,25 +133,30 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - Temporary test URL: `dyshhxdimbjli.cloudfront.net`
 - CI/CD fully green — both Terraform and frontend deploy pipelines passing
 
-### Frontend romantic redesign
-- Complete redesign of `index.html`, `style.css`, `main.js`
+### Frontend redesign — first attempt (Unsplash images)
+- Redesigned with Unsplash background images for hero, service cards, and about section
+- **Failed** — Unsplash URLs don't load reliably through CloudFront, broken layout
+- Reverted approach
+
+### Frontend redesign — second attempt (CSS only)
+- Complete CSS-only redesign of `index.html` and `style.css` — no external images
 - Typography: Cormorant Garamond (italic serif headlines) + Jost (clean sans body)
 - Palette: deep ivory (#FAF8F5), dusty rose (#C9A99A), champagne gold (#B8973E), charcoal (#2C2623)
-- Hero: full-viewport with Unsplash bridal image background + dark overlay, white text
-- Service cards: each with relevant Unsplash placeholder image, subtle hover zoom
-- New "Over ons" section introducing Sibel and the atelier
-- Calendar restyled to match — dusty rose selection, faded booked dates, cream available dates
+- Hero: full-viewport warm cream with decorative CSS borders and dusty rose CTA button
+- Intro strip: 3 elegant columns (Persoonlijke begeleiding / Vakkundige pasvorm / Bruidsjurk specialist)
+- Service cards: dusty rose top border accent, italic serif headings, CSS-only decorative
+- "Over ons" section: text-only, pull quote in Cormorant Garamond italic, decorative dividers
+- Calendar restyled — dusty rose selection, faded booked dates, cream available dates
 - All booking logic preserved unchanged
 - Deployed to S3 + CloudFront cache invalidated
 
 ### SES status
-- SES sandbox still active — production access blocked until domain is verified via DNS
+- SES sandbox still active — production access blocked until domain verified via DNS
 - Email sending works within sandbox (verified addresses only)
 
 ### DNS status
 - CloudFront test URL: `dyshhxdimbjli.cloudfront.net` — live and serving the new design
-- JouwWeb still live on `q-atelier.nl` — DNS cutover to CloudFront NOT done yet
-- Waiting for Sibel approval before pointing DNS to CloudFront
+- JouwWeb still live on `q-atelier.nl` — DNS cutover NOT done yet, waiting for Sibel approval
 
 ---
 
