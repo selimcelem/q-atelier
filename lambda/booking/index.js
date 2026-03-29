@@ -2,7 +2,7 @@ const { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand } = requ
 const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
 const { v4: uuidv4 } = require('uuid');
 const { generateICS } = require('./ics');
-const { sendBookingEmail, sendPlainEmail } = require('./email');
+const { sendBookingEmail, sendPlainEmail, sendHtmlEmail } = require('./email');
 
 const dynamo = new DynamoDBClient({});
 const sns = new SNSClient({ region: 'eu-west-1' });
@@ -179,29 +179,35 @@ async function createBooking(event) {
     throw err;
   }
 
-  // Email to Sibel with action links
+  // Email to Sibel with action buttons
   const acceptUrl = `${API_BASE}/action?token=${token}&action=accept`;
   const rescheduleUrl = `${API_BASE}/reschedule?token=${token}`;
   const rejectUrl = `${API_BASE}/action?token=${token}&action=reject`;
 
-  const sibelBody =
-    `Nieuwe afspraak aanvraag:\r\n\r\n` +
-    `Naam: ${name}\r\n` +
-    `E-mail: ${email}\r\n` +
-    `Telefoon: ${phone}\r\n` +
-    `Datum: ${date}\r\n` +
-    `Tijdstip: ${time_slot}\r\n` +
-    `Service: ${service}\r\n\r\n` +
-    `--- Acties ---\r\n\r\n` +
-    `Accepteren:\r\n${acceptUrl}\r\n\r\n` +
-    `Nieuw tijdstip voorstellen:\r\n${rescheduleUrl}\r\n\r\n` +
-    `Afwijzen:\r\n${rejectUrl}\r\n`;
+  const btnStyle = 'display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;text-decoration:none;border-radius:4px;color:#ffffff;';
+  const sibelHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;background:#FAF8F5;padding:20px;color:#2C2623;">
+<div style="max-width:500px;margin:0 auto;background:#ffffff;border:1px solid #E8DAD2;padding:30px;">
+<h2 style="margin:0 0 20px;font-size:20px;color:#2C2623;">Nieuwe afspraak aanvraag</h2>
+<table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:15px;">
+<tr><td style="padding:6px 0;color:#8A7F7A;">Naam</td><td style="padding:6px 0;font-weight:600;">${name}</td></tr>
+<tr><td style="padding:6px 0;color:#8A7F7A;">E-mail</td><td style="padding:6px 0;">${email}</td></tr>
+<tr><td style="padding:6px 0;color:#8A7F7A;">Telefoon</td><td style="padding:6px 0;">${phone}</td></tr>
+<tr><td style="padding:6px 0;color:#8A7F7A;">Datum</td><td style="padding:6px 0;font-weight:600;">${date}</td></tr>
+<tr><td style="padding:6px 0;color:#8A7F7A;">Tijdstip</td><td style="padding:6px 0;font-weight:600;">${time_slot}</td></tr>
+<tr><td style="padding:6px 0;color:#8A7F7A;">Service</td><td style="padding:6px 0;">${service}</td></tr>
+</table>
+<div style="text-align:center;">
+<a href="${acceptUrl}" style="${btnStyle}background:#3A7D44;margin:0 4px 10px;">Accepteren</a>
+<a href="${rescheduleUrl}" style="${btnStyle}background:#2E6B9E;margin:0 4px 10px;">Nieuw tijdstip voorstellen</a>
+<a href="${rejectUrl}" style="${btnStyle}background:#A63D40;margin:0 4px 10px;">Afwijzen</a>
+</div>
+</div></body></html>`;
 
-  await sendPlainEmail({
+  await sendHtmlEmail({
     to: SIBEL_EMAIL,
     from: FROM_EMAIL,
     subject: `Nieuwe afspraak aanvraag — ${name} op ${date} om ${time_slot}`,
-    body: sibelBody,
+    html: sibelHtml,
   });
 
   // SMS to Sibel

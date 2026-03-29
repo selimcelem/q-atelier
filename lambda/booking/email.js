@@ -70,4 +70,23 @@ async function sendPlainEmail({ to, from, subject, body }) {
   );
 }
 
-module.exports = { sendBookingEmail, sendPlainEmail };
+async function sendHtmlEmail({ to, from, subject, html }) {
+  const rawMessage = [
+    `From: Q-Atelier <${from}>`,
+    `To: ${to}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/html; charset=UTF-8',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    html,
+  ].join('\r\n');
+
+  await ses.send(
+    new SendRawEmailCommand({
+      RawMessage: { Data: Buffer.from(rawMessage) },
+    })
+  );
+}
+
+module.exports = { sendBookingEmail, sendPlainEmail, sendHtmlEmail };

@@ -321,6 +321,22 @@ resource "aws_api_gateway_deployment" "api" {
     aws_api_gateway_integration.respond_get,
   ]
 
+  triggers = {
+    redeployment = sha1(jsonencode([
+      aws_api_gateway_resource.slots.id,
+      aws_api_gateway_resource.booking.id,
+      aws_api_gateway_resource.action.id,
+      aws_api_gateway_resource.reschedule.id,
+      aws_api_gateway_resource.respond.id,
+      aws_api_gateway_method.slots_get.id,
+      aws_api_gateway_method.booking_post.id,
+      aws_api_gateway_method.action_get.id,
+      aws_api_gateway_method.reschedule_get.id,
+      aws_api_gateway_method.reschedule_post.id,
+      aws_api_gateway_method.respond_get.id,
+    ]))
+  }
+
   lifecycle {
     create_before_destroy = true
   }
