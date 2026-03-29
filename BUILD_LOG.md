@@ -137,15 +137,21 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - Complete redesign of `index.html`, `style.css`, `main.js`
 - Typography: Cormorant Garamond (italic serif headlines) + Jost (clean sans body)
 - Palette: deep ivory (#FAF8F5), dusty rose (#C9A99A), champagne gold (#B8973E), charcoal (#2C2623)
-- Full-viewport hero with subtle linen texture (CSS-only), thin-bordered elegant buttons
-- Service cards with minimal borders, italic serif headings
+- Hero: full-viewport with Unsplash bridal image background + dark overlay, white text
+- Service cards: each with relevant Unsplash placeholder image, subtle hover zoom
+- New "Over ons" section introducing Sibel and the atelier
 - Calendar restyled to match — dusty rose selection, faded booked dates, cream available dates
 - All booking logic preserved unchanged
 - Deployed to S3 + CloudFront cache invalidated
 
 ### SES status
-- SES sandbox still active — production access request blocked until domain is fully verified
+- SES sandbox still active — production access blocked until domain is verified via DNS
 - Email sending works within sandbox (verified addresses only)
+
+### DNS status
+- CloudFront test URL: `dyshhxdimbjli.cloudfront.net` — live and serving the new design
+- JouwWeb still live on `q-atelier.nl` — DNS cutover to CloudFront NOT done yet
+- Waiting for Sibel approval before pointing DNS to CloudFront
 
 ---
 
