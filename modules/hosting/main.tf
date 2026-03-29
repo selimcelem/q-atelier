@@ -50,7 +50,6 @@ resource "aws_cloudfront_origin_access_control" "site" {
 resource "aws_cloudfront_distribution" "site" {
   enabled             = true
   default_root_object = "index.html"
-  aliases             = [var.domain_name, "www.${var.domain_name}"]
   price_class         = "PriceClass_100" # Europe + North America only
 
   origin {
@@ -88,6 +87,8 @@ resource "aws_cloudfront_distribution" "site" {
     response_code      = 200
     response_page_path = "/index.html"
   }
+
+  aliases = [var.domain_name, "www.${var.domain_name}"]
 
   restrictions {
     geo_restriction { restriction_type = "none" }
