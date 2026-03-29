@@ -263,7 +263,7 @@ async function handleAction(event) {
     }));
 
     const icsContent = generateICS({ name, email, date, time_slot, service });
-    await sendBookingEmail({ to: email, from: FROM_EMAIL, bcc: SIBEL_EMAIL, name, date, time_slot, service, icsContent });
+    await sendBookingEmail({ to: email, from: FROM_EMAIL, name, date, time_slot, service, icsContent });
 
     await sendPlainEmail({
       to: SIBEL_EMAIL,
@@ -530,7 +530,6 @@ async function handleRespond(event) {
     await sendBookingEmail({
       to: email,
       from: FROM_EMAIL,
-      bcc: SIBEL_EMAIL,
       name,
       date: suggestedDate,
       time_slot: suggestedTime,

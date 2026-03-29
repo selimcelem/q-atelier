@@ -20,11 +20,15 @@ async function sendBookingEmail({ to, from, bcc, name, date, time_slot, service,
   const boundary = `----=_Part_${Date.now()}`;
   const icsBase64 = Buffer.from(icsContent).toString('base64');
 
-  const rawMessage = [
+  const headers = [
     `From: Q-Atelier <${from}>`,
     `To: ${to}`,
-    `Bcc: ${bcc}`,
-    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+  ];
+  if (bcc) headers.push(`Bcc: ${bcc}`);
+  headers.push(`Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`);
+
+  const rawMessage = [
+    ...headers,
     'MIME-Version: 1.0',
     `Content-Type: multipart/mixed; boundary="${boundary}"`,
     '',
