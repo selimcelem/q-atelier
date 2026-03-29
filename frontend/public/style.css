@@ -72,10 +72,12 @@ nav {
   color: var(--charcoal);
 }
 
+.nav-check {
+  display: none;
+}
+
 .nav-toggle {
   display: none;
-  background: none;
-  border: none;
   cursor: pointer;
   min-width: 44px;
   min-height: 44px;
@@ -85,8 +87,6 @@ nav {
   justify-content: center;
   gap: 5px;
   -webkit-tap-highlight-color: transparent;
-  touch-action: manipulation;
-  pointer-events: auto;
   position: relative;
   z-index: 150;
 }
@@ -95,7 +95,6 @@ nav {
   width: 22px;
   height: 1.5px;
   background: var(--charcoal);
-  pointer-events: none;
   transition: transform 0.3s ease, opacity 0.3s ease;
 }
 
@@ -677,7 +676,7 @@ footer {
     padding: 1rem 0;
     border-bottom: 1px solid var(--rose-faded);
   }
-  .nav-links.open { display: flex; }
+  .nav-check:checked ~ .nav-links { display: flex; }
   .nav-links a {
     padding: 0.8rem 0;
     font-size: 0.85rem;
