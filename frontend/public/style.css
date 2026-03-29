@@ -13,7 +13,10 @@
   --charcoal-muted: #8A7F7A;
 }
 
-html { scroll-behavior: smooth; }
+html {
+  scroll-behavior: smooth;
+  overflow-x: hidden;
+}
 
 body {
   font-family: 'Jost', -apple-system, BlinkMacSystemFont, sans-serif;
@@ -22,6 +25,8 @@ body {
   color: var(--charcoal);
   line-height: 1.7;
   font-size: 16px;
+  overflow-x: hidden;
+  min-width: 320px;
 }
 
 h1, h2, h3 {
@@ -160,35 +165,41 @@ nav {
 
 /* ── Intro Strip ─────────────────────────────────────────── */
 .intro-strip {
+  display: block;
   width: 100%;
   padding: 4.5rem 2rem;
   background: var(--ivory-dark);
   border-top: 1px solid var(--rose-faded);
   border-bottom: 1px solid var(--rose-faded);
+  box-sizing: border-box;
 }
 
 .intro-grid {
-  width: 100%;
-  max-width: 900px;
-  margin: 0 auto;
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: 1fr 1fr 1fr;
   gap: 3rem;
+  max-width: 900px;
+  margin-left: auto;
+  margin-right: auto;
   text-align: center;
+  box-sizing: border-box;
 }
 
 .intro-item {
   display: flex;
   flex-direction: column;
   align-items: center;
+  text-align: center;
 }
 
 .intro-icon {
+  display: block;
   width: 10px;
   height: 10px;
+  min-height: 10px;
   border: 1px solid var(--rose);
   transform: rotate(45deg);
-  margin-bottom: 1.2rem;
+  margin: 0 auto 1.2rem auto;
 }
 
 .intro-item h3 {
@@ -250,17 +261,22 @@ nav {
 
 /* ── About ───────────────────────────────────────────────── */
 .about {
+  display: block;
   width: 100%;
   padding: 7rem 2rem;
   background: var(--ivory-dark);
   text-align: center;
   overflow: hidden;
+  box-sizing: border-box;
 }
 
 .about-inner {
+  display: block;
   max-width: 620px;
-  margin: 0 auto;
+  margin-left: auto;
+  margin-right: auto;
   padding: 0 1rem;
+  box-sizing: border-box;
   word-wrap: break-word;
   overflow-wrap: break-word;
 }
@@ -269,10 +285,10 @@ nav {
   width: 60px;
   height: 1px;
   background: var(--rose);
-  margin: 0 auto 2.5rem;
+  margin: 0 auto 2.5rem auto;
 }
 .about-inner > .about-divider:last-child {
-  margin: 2.5rem auto 0;
+  margin: 2.5rem auto 0 auto;
 }
 
 .about h2 {
@@ -287,6 +303,7 @@ nav {
   color: var(--charcoal-light);
   line-height: 1.9;
   margin-bottom: 1rem;
+  max-width: 100%;
 }
 
 .about blockquote {
@@ -296,7 +313,7 @@ nav {
   font-style: italic;
   font-weight: 400;
   color: var(--rose);
-  margin: 2rem 0 0;
+  margin: 2rem auto 0 auto;
   padding: 0;
   border: none;
   line-height: 1.5;
@@ -618,7 +635,7 @@ footer {
   .hero h1 { font-size: 2.4rem; }
   .hero { min-height: 85vh; padding: 4rem 1.5rem; }
   .intro-strip { padding: 3rem 1.5rem; }
-  .intro-grid { grid-template-columns: 1fr; gap: 2rem; }
+  .intro-grid { grid-template-columns: 1fr !important; gap: 2rem; }
   .services { padding: 5rem 1.5rem; }
   .services-grid { grid-template-columns: 1fr; gap: 1.5rem; }
   .about { padding: 5rem 1.5rem; }
