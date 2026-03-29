@@ -51,4 +51,23 @@ async function sendBookingEmail({ to, from, bcc, name, date, time_slot, service,
   );
 }
 
-module.exports = { sendBookingEmail };
+async function sendPlainEmail({ to, from, subject, body }) {
+  const rawMessage = [
+    `From: Q-Atelier <${from}>`,
+    `To: ${to}`,
+    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
+    'MIME-Version: 1.0',
+    'Content-Type: text/plain; charset=UTF-8',
+    'Content-Transfer-Encoding: 7bit',
+    '',
+    body,
+  ].join('\r\n');
+
+  await ses.send(
+    new SendRawEmailCommand({
+      RawMessage: { Data: Buffer.from(rawMessage) },
+    })
+  );
+}
+
+module.exports = { sendBookingEmail, sendPlainEmail };

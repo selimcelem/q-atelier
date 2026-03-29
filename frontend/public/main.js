@@ -198,7 +198,7 @@
       });
 
       if (res.ok) {
-        showMessage('success', 'Bedankt! Check je e-mail voor de bevestiging.');
+        showMessage('success', 'Bedankt voor uw aanvraag! Sibel bevestigt uw afspraak zo snel mogelijk per e-mail.');
         bookingForm.reset();
         formContainer.style.display = 'none';
         timeslotsContainer.style.display = 'none';

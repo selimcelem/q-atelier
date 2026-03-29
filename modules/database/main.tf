@@ -31,6 +31,18 @@ resource "aws_dynamodb_table" "bookings" {
     type = "S"
   }
 
+  # GSI: look up bookings by token (for action links)
+  global_secondary_index {
+    name            = "token-index"
+    hash_key        = "token"
+    projection_type = "ALL"
+  }
+
+  attribute {
+    name = "token"
+    type = "S"
+  }
+
   # TTL: auto-expire old bookings after 1 year
   ttl {
     attribute_name = "expires_at"

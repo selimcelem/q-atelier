@@ -1,7 +1,8 @@
-const { DynamoDBClient, PutItemCommand, QueryCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
 const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
+const { v4: uuidv4 } = require('uuid');
 const { generateICS } = require('./ics');
-const { sendBookingEmail } = require('./email');
+const { sendBookingEmail, sendPlainEmail } = require('./email');
 
 const dynamo = new DynamoDBClient({});
 const sns = new SNSClient({ region: 'eu-west-1' });
@@ -12,12 +13,18 @@ const SIBEL_EMAIL = process.env.SIBEL_EMAIL;
 const FROM_EMAIL = process.env.FROM_EMAIL;
 
 const ALLOWED_SLOTS = ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+const TOKEN_TTL_DAYS = 7;
 
-const HEADERS = {
+const JSON_HEADERS = {
   'Content-Type': 'application/json',
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'Content-Type,Authorization',
   'Access-Control-Allow-Methods': 'GET,POST,OPTIONS',
+};
+
+const HTML_HEADERS = {
+  'Content-Type': 'text/html; charset=UTF-8',
+  'Access-Control-Allow-Origin': '*',
 };
 
 exports.handler = async (event) => {
@@ -25,51 +32,79 @@ exports.handler = async (event) => {
   const path = event.resource;
 
   if (method === 'OPTIONS') {
-    return { statusCode: 200, headers: HEADERS, body: '' };
+    return { statusCode: 200, headers: JSON_HEADERS, body: '' };
   }
 
   try {
-    if (method === 'GET' && path === '/slots') {
-      return await getSlots(event);
-    }
-    if (method === 'POST' && path === '/booking') {
-      return await createBooking(event);
-    }
-    return { statusCode: 404, headers: HEADERS, body: JSON.stringify({ error: 'Not found' }) };
+    if (method === 'GET' && path === '/slots') return await getSlots(event);
+    if (method === 'POST' && path === '/booking') return await createBooking(event);
+    if (method === 'GET' && path === '/action') return await handleAction(event);
+    if (method === 'GET' && path === '/reschedule') return await showRescheduleForm(event);
+    if (method === 'POST' && path === '/reschedule') return await handleReschedule(event);
+    if (method === 'GET' && path === '/respond') return await handleRespond(event);
+    return { statusCode: 404, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Not found' }) };
   } catch (err) {
     console.error(err);
-    return { statusCode: 500, headers: HEADERS, body: JSON.stringify({ error: 'Internal error' }) };
+    return { statusCode: 500, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Internal error' }) };
   }
 };
 
+// ── Helper: find booking by token ──────────────────────────────────
+async function findByToken(token) {
+  const result = await dynamo.send(new QueryCommand({
+    TableName: TABLE,
+    IndexName: 'token-index',
+    KeyConditionExpression: '#t = :token',
+    ExpressionAttributeNames: { '#t': 'token' },
+    ExpressionAttributeValues: { ':token': { S: token } },
+  }));
+  return (result.Items && result.Items.length > 0) ? result.Items[0] : null;
+}
+
+function validateToken(item) {
+  if (!item) return 'Token niet gevonden';
+  const expiresAt = Number(item.token_expires_at?.N || 0);
+  if (Date.now() / 1000 > expiresAt) return 'Token is verlopen';
+  const status = item.status?.S;
+  if (status === 'CONFIRMED' || status === 'CANCELLED') return 'Deze actie is al uitgevoerd';
+  return null;
+}
+
+function htmlPage(title, body) {
+  return `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>${title} — Q-Atelier</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#FAF8F5;color:#2C2623;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:2rem}
+.card{max-width:500px;width:100%;background:#fff;border:1px solid #E8DAD2;padding:2.5rem;text-align:center}
+h1{font-size:1.4rem;margin-bottom:1rem;color:#2C2623}p{font-size:0.95rem;line-height:1.7;color:#5A4F4A;margin-bottom:0.8rem}
+.ok{color:#3A5F34}.err{color:#8B3A3A}</style></head>
+<body><div class="card"><h1>${title}</h1>${body}</div></body></html>`;
+}
+
+const API_BASE = 'https://apqc7wkzj6.execute-api.eu-west-1.amazonaws.com/prod';
+
+// ── GET /slots ─────────────────────────────────────────────────────
 async function getSlots(event) {
   const month = event.queryStringParameters && event.queryStringParameters.month;
   if (!month || !/^\d{4}-\d{2}$/.test(month)) {
-    return {
-      statusCode: 400,
-      headers: HEADERS,
-      body: JSON.stringify({ error: 'Parameter month is required (YYYY-MM)' }),
-    };
+    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Parameter month is required (YYYY-MM)' }) };
   }
 
-  // Query booked slots from DynamoDB using month-index GSI
-  const result = await dynamo.send(
-    new QueryCommand({
-      TableName: TABLE,
-      IndexName: 'month-index',
-      KeyConditionExpression: '#m = :month',
-      ExpressionAttributeNames: { '#m': 'month' },
-      ExpressionAttributeValues: { ':month': { S: month } },
-    })
-  );
+  const result = await dynamo.send(new QueryCommand({
+    TableName: TABLE,
+    IndexName: 'month-index',
+    KeyConditionExpression: '#m = :month',
+    ExpressionAttributeNames: { '#m': 'month' },
+    ExpressionAttributeValues: { ':month': { S: month } },
+  }));
 
-  // Build set of booked date+slot combos
   const booked = new Set();
   for (const item of result.Items || []) {
-    booked.add(`${item.date.S}|${item.time_slot.S}`);
+    const status = item.status?.S;
+    if (status !== 'CANCELLED') {
+      booked.add(`${item.date.S}|${item.time_slot.S}`);
+    }
   }
 
-  // Generate all days in the month
   const [year, mon] = month.split('-').map(Number);
   const daysInMonth = new Date(year, mon, 0).getDate();
   const slots = {};
@@ -77,8 +112,6 @@ async function getSlots(event) {
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dayOfWeek = new Date(year, mon - 1, day).getDay();
-
-    // Sunday (0) = closed
     if (dayOfWeek === 0) continue;
 
     const daySlots = {};
@@ -88,124 +121,460 @@ async function getSlots(event) {
     slots[dateStr] = daySlots;
   }
 
-  return {
-    statusCode: 200,
-    headers: HEADERS,
-    body: JSON.stringify(slots),
-  };
+  return { statusCode: 200, headers: JSON_HEADERS, body: JSON.stringify(slots) };
 }
 
+// ── POST /booking (PENDING flow) ──────────────────────────────────
 async function createBooking(event) {
   const body = JSON.parse(event.body || '{}');
   const { name, email, phone, date, time_slot, service } = body;
 
-  // Validate required fields
   if (!name || !email || !phone || !date || !time_slot || !service) {
-    return {
-      statusCode: 400,
-      headers: HEADERS,
-      body: JSON.stringify({ error: 'Alle velden zijn verplicht' }),
-    };
+    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Alle velden zijn verplicht' }) };
   }
-
-  // Validate date format
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
-    return {
-      statusCode: 400,
-      headers: HEADERS,
-      body: JSON.stringify({ error: 'Ongeldig datumformaat (YYYY-MM-DD)' }),
-    };
+    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Ongeldig datumformaat (YYYY-MM-DD)' }) };
   }
-
-  // Validate date not in the past
   const today = new Date().toISOString().split('T')[0];
   if (date < today) {
-    return {
-      statusCode: 400,
-      headers: HEADERS,
-      body: JSON.stringify({ error: 'Datum mag niet in het verleden liggen' }),
-    };
+    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Datum mag niet in het verleden liggen' }) };
   }
-
-  // Validate not Sunday
   const [y, m, d] = date.split('-').map(Number);
   if (new Date(y, m - 1, d).getDay() === 0) {
-    return {
-      statusCode: 400,
-      headers: HEADERS,
-      body: JSON.stringify({ error: 'Op zondag zijn wij gesloten' }),
-    };
+    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Op zondag zijn wij gesloten' }) };
   }
-
-  // Validate time slot
   if (!ALLOWED_SLOTS.includes(time_slot)) {
-    return {
-      statusCode: 400,
-      headers: HEADERS,
-      body: JSON.stringify({ error: 'Ongeldig tijdstip' }),
-    };
+    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Ongeldig tijdstip' }) };
   }
 
-  // Write to DynamoDB with condition to prevent double booking
   const month = date.substring(0, 7);
   const expiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;
+  const token = uuidv4();
+  const tokenExpiresAt = Math.floor(Date.now() / 1000) + TOKEN_TTL_DAYS * 24 * 60 * 60;
 
   try {
-    await dynamo.send(
-      new PutItemCommand({
-        TableName: TABLE,
-        Item: {
-          date: { S: date },
-          time_slot: { S: time_slot },
-          month: { S: month },
-          name: { S: name },
-          email: { S: email },
-          phone: { S: phone },
-          service: { S: service },
-          expires_at: { N: String(expiresAt) },
-          created_at: { S: new Date().toISOString() },
-        },
-        ConditionExpression: 'attribute_not_exists(#d) AND attribute_not_exists(#ts)',
-        ExpressionAttributeNames: { '#d': 'date', '#ts': 'time_slot' },
-      })
-    );
+    await dynamo.send(new PutItemCommand({
+      TableName: TABLE,
+      Item: {
+        date: { S: date },
+        time_slot: { S: time_slot },
+        month: { S: month },
+        name: { S: name },
+        email: { S: email },
+        phone: { S: phone },
+        service: { S: service },
+        status: { S: 'PENDING' },
+        token: { S: token },
+        token_expires_at: { N: String(tokenExpiresAt) },
+        expires_at: { N: String(expiresAt) },
+        created_at: { S: new Date().toISOString() },
+      },
+      ConditionExpression: 'attribute_not_exists(#d) AND attribute_not_exists(#ts)',
+      ExpressionAttributeNames: { '#d': 'date', '#ts': 'time_slot' },
+    }));
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
-      return {
-        statusCode: 409,
-        headers: HEADERS,
-        body: JSON.stringify({ error: 'Dit tijdstip is helaas al bezet' }),
-      };
+      return { statusCode: 409, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Dit tijdstip is helaas al bezet' }) };
     }
     throw err;
   }
 
-  // Generate .ics
-  const icsContent = generateICS({ name, email, date, time_slot, service });
+  // Email to Sibel with action links
+  const acceptUrl = `${API_BASE}/action?token=${token}&action=accept`;
+  const rescheduleUrl = `${API_BASE}/reschedule?token=${token}`;
+  const rejectUrl = `${API_BASE}/action?token=${token}&action=reject`;
 
-  // Send confirmation email with .ics attachment
-  await sendBookingEmail({
-    to: email,
+  const sibelBody =
+    `Nieuwe afspraak aanvraag:\r\n\r\n` +
+    `Naam: ${name}\r\n` +
+    `E-mail: ${email}\r\n` +
+    `Telefoon: ${phone}\r\n` +
+    `Datum: ${date}\r\n` +
+    `Tijdstip: ${time_slot}\r\n` +
+    `Service: ${service}\r\n\r\n` +
+    `--- Acties ---\r\n\r\n` +
+    `Accepteren:\r\n${acceptUrl}\r\n\r\n` +
+    `Nieuw tijdstip voorstellen:\r\n${rescheduleUrl}\r\n\r\n` +
+    `Afwijzen:\r\n${rejectUrl}\r\n`;
+
+  await sendPlainEmail({
+    to: SIBEL_EMAIL,
     from: FROM_EMAIL,
-    bcc: SIBEL_EMAIL,
-    name,
-    date,
-    time_slot,
-    service,
-    icsContent,
+    subject: `Nieuwe afspraak aanvraag — ${name} op ${date} om ${time_slot}`,
+    body: sibelBody,
   });
 
-  // Send SMS notification to Sibel
-  await sns.send(
-    new PublishCommand({
-      TopicArn: SNS_ARN,
-      Message: `Nieuwe afspraak: ${name} op ${date} om ${time_slot} voor ${service}`,
-    })
-  );
+  // SMS to Sibel
+  await sns.send(new PublishCommand({
+    TopicArn: SNS_ARN,
+    Message: `Nieuwe afspraak aanvraag: ${name} op ${date} om ${time_slot} voor ${service}. Check je mail.`,
+  }));
 
-  return {
-    statusCode: 200,
-    headers: HEADERS,
-    body: JSON.stringify({ message: 'Afspraak bevestigd' }),
-  };
+  // Confirmation email to customer
+  await sendPlainEmail({
+    to: email,
+    from: FROM_EMAIL,
+    subject: 'Uw afspraak aanvraag bij Q-Atelier is ontvangen',
+    body:
+      `Beste ${name},\r\n\r\n` +
+      `Wij hebben uw aanvraag ontvangen voor een afspraak op ${date} om ${time_slot} voor ${service}.\r\n\r\n` +
+      `Sibel neemt zo snel mogelijk contact op ter bevestiging.\r\n\r\n` +
+      `Met vriendelijke groet,\r\nQ-Atelier`,
+  });
+
+  return { statusCode: 200, headers: JSON_HEADERS, body: JSON.stringify({ message: 'Aanvraag ontvangen' }) };
+}
+
+// ── GET /action?token=TOKEN&action=accept|reject ──────────────────
+async function handleAction(event) {
+  const params = event.queryStringParameters || {};
+  const { token, action } = params;
+
+  if (!token || !action || !['accept', 'reject'].includes(action)) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige link.</p>') };
+  }
+
+  const item = await findByToken(token);
+  const error = validateToken(item);
+  if (error) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', `<p class="err">${error}</p>`) };
+  }
+
+  const name = item.name.S;
+  const email = item.email.S;
+  const phone = item.phone.S;
+  const date = item.date.S;
+  const time_slot = item.time_slot.S;
+  const service = item.service.S;
+
+  if (action === 'accept') {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE,
+      Key: { date: { S: date }, time_slot: { S: time_slot } },
+      UpdateExpression: 'SET #s = :status',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':status': { S: 'CONFIRMED' } },
+    }));
+
+    const icsContent = generateICS({ name, email, date, time_slot, service });
+    await sendBookingEmail({ to: email, from: FROM_EMAIL, bcc: SIBEL_EMAIL, name, date, time_slot, service, icsContent });
+
+    await sendPlainEmail({
+      to: SIBEL_EMAIL,
+      from: FROM_EMAIL,
+      subject: `Afspraak bevestigd — ${name} op ${date} om ${time_slot}`,
+      body: `Je hebt de afspraak van ${name} op ${date} om ${time_slot} bevestigd.\r\n${name} ontvangt een bevestiging per e-mail.`,
+    });
+
+    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Afspraak bevestigd', `<p class="ok">${name} ontvangt een bevestiging per e-mail.</p>`) };
+  }
+
+  if (action === 'reject') {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE,
+      Key: { date: { S: date }, time_slot: { S: time_slot } },
+      UpdateExpression: 'SET #s = :status',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':status': { S: 'CANCELLED' } },
+    }));
+
+    await sendPlainEmail({
+      to: email,
+      from: FROM_EMAIL,
+      subject: 'Uw afspraak bij Q-Atelier',
+      body:
+        `Beste ${name},\r\n\r\n` +
+        `Helaas kunnen wij uw afspraak op dit moment niet bevestigen.\r\n` +
+        `Sibel neemt zo snel mogelijk contact met u op.\r\n\r\n` +
+        `Met vriendelijke groet,\r\nQ-Atelier`,
+    });
+
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
+    await sendPlainEmail({
+      to: SIBEL_EMAIL,
+      from: FROM_EMAIL,
+      subject: `Afspraak afgewezen — ${name}`,
+      body:
+        `Je hebt de afspraak van ${name} afgewezen.\r\n\r\n` +
+        `Klantgegevens:\r\n` +
+        `Naam: ${name}\r\n` +
+        `E-mail: ${email}\r\n` +
+        `Telefoon: ${phone}\r\n` +
+        `WhatsApp: ${whatsappUrl}\r\n\r\n` +
+        `Neem contact op met de klant om een alternatief te bespreken.`,
+    });
+
+    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Afspraak afgewezen', '<p>De klant wordt op de hoogte gesteld.</p>') };
+  }
+}
+
+// ── GET /reschedule?token=TOKEN ───────────────────────────────────
+async function showRescheduleForm(event) {
+  const params = event.queryStringParameters || {};
+  const { token } = params;
+
+  if (!token) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige link.</p>') };
+  }
+
+  const item = await findByToken(token);
+  const error = validateToken(item);
+  if (error) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', `<p class="err">${error}</p>`) };
+  }
+
+  const name = item.name.S;
+  const date = item.date.S;
+  const time_slot = item.time_slot.S;
+  const service = item.service.S;
+  const todayStr = new Date().toISOString().split('T')[0];
+
+  const slotsOptions = ALLOWED_SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+
+  const formHtml = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Nieuw tijdstip voorstellen — Q-Atelier</title>
+<style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#FAF8F5;color:#2C2623;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:2rem}
+.card{max-width:500px;width:100%;background:#fff;border:1px solid #E8DAD2;padding:2.5rem}
+h1{font-size:1.3rem;margin-bottom:1.5rem;text-align:center}
+.info{background:#F3EDE6;padding:1rem;margin-bottom:1.5rem;font-size:0.9rem;line-height:1.6}
+label{display:block;font-size:0.85rem;margin-bottom:0.3rem;color:#5A4F4A}
+input,select{width:100%;padding:0.7rem;border:1px solid #E8DAD2;font-size:0.95rem;margin-bottom:1rem;background:#FAF8F5}
+input:focus,select:focus{outline:none;border-color:#C9A99A}
+button{width:100%;padding:0.85rem;border:1px solid #2C2623;background:transparent;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer}
+button:hover{background:#2C2623;color:#FAF8F5}</style></head>
+<body><div class="card">
+<h1>Nieuw tijdstip voorstellen</h1>
+<div class="info">
+<strong>Huidige aanvraag:</strong><br>
+Klant: ${name}<br>
+Datum: ${date}<br>
+Tijd: ${time_slot}<br>
+Service: ${service}
+</div>
+<form method="POST" action="${API_BASE}/reschedule">
+<input type="hidden" name="token" value="${token}">
+<label for="new_date">Nieuwe datum</label>
+<input type="date" id="new_date" name="new_date" min="${todayStr}" required>
+<label for="new_time_slot">Nieuw tijdstip</label>
+<select id="new_time_slot" name="new_time_slot" required>${slotsOptions}</select>
+<button type="submit">Voorstellen</button>
+</form>
+</div></body></html>`;
+
+  return { statusCode: 200, headers: HTML_HEADERS, body: formHtml };
+}
+
+// ── POST /reschedule ──────────────────────────────────────────────
+async function handleReschedule(event) {
+  // Parse URL-encoded form body
+  const params = new URLSearchParams(event.body || '');
+  const token = params.get('token');
+  const new_date = params.get('new_date');
+  const new_time_slot = params.get('new_time_slot');
+
+  if (!token || !new_date || !new_time_slot) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Alle velden zijn verplicht.</p>') };
+  }
+
+  if (!ALLOWED_SLOTS.includes(new_time_slot)) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldig tijdstip.</p>') };
+  }
+
+  const item = await findByToken(token);
+  const error = validateToken(item);
+  if (error) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', `<p class="err">${error}</p>`) };
+  }
+
+  // Check if new slot is already booked
+  const existing = await dynamo.send(new QueryCommand({
+    TableName: TABLE,
+    KeyConditionExpression: '#d = :date AND #ts = :ts',
+    ExpressionAttributeNames: { '#d': 'date', '#ts': 'time_slot' },
+    ExpressionAttributeValues: { ':date': { S: new_date }, ':ts': { S: new_time_slot } },
+  }));
+  if (existing.Items && existing.Items.length > 0) {
+    const existingStatus = existing.Items[0].status?.S;
+    if (existingStatus !== 'CANCELLED') {
+      return { statusCode: 409, headers: HTML_HEADERS, body: htmlPage('Bezet', '<p class="err">Dit tijdstip is helaas al bezet. Kies een ander tijdstip.</p>') };
+    }
+  }
+
+  const name = item.name.S;
+  const email = item.email.S;
+  const phone = item.phone.S;
+  const date = item.date.S;
+  const time_slot = item.time_slot.S;
+  const service = item.service.S;
+
+  // Generate customer token for response links
+  const customerToken = uuidv4();
+  const tokenExpiresAt = Math.floor(Date.now() / 1000) + TOKEN_TTL_DAYS * 24 * 60 * 60;
+
+  await dynamo.send(new UpdateItemCommand({
+    TableName: TABLE,
+    Key: { date: { S: date }, time_slot: { S: time_slot } },
+    UpdateExpression: 'SET #s = :status, suggested_date = :sd, suggested_time_slot = :sts, customer_token = :ct, token_expires_at = :te',
+    ExpressionAttributeNames: { '#s': 'status' },
+    ExpressionAttributeValues: {
+      ':status': { S: 'RESCHEDULED' },
+      ':sd': { S: new_date },
+      ':sts': { S: new_time_slot },
+      ':ct': { S: customerToken },
+      ':te': { N: String(tokenExpiresAt) },
+    },
+  }));
+
+  const acceptUrl = `${API_BASE}/respond?token=${customerToken}&action=accept`;
+  const rejectUrl = `${API_BASE}/respond?token=${customerToken}&action=reject`;
+
+  await sendPlainEmail({
+    to: email,
+    from: FROM_EMAIL,
+    subject: `Nieuw tijdstip voorgesteld — Q-Atelier`,
+    body:
+      `Beste ${name},\r\n\r\n` +
+      `Helaas is Sibel op ${date} om ${time_slot} niet beschikbaar.\r\n\r\n` +
+      `Sibel stelt voor: ${new_date} om ${new_time_slot}.\r\n\r\n` +
+      `Accepteren:\r\n${acceptUrl}\r\n\r\n` +
+      `Afwijzen:\r\n${rejectUrl}\r\n\r\n` +
+      `Met vriendelijke groet,\r\nQ-Atelier`,
+  });
+
+  await sendPlainEmail({
+    to: SIBEL_EMAIL,
+    from: FROM_EMAIL,
+    subject: `Nieuw tijdstip voorgesteld aan ${name}`,
+    body: `Je hebt een nieuw tijdstip voorgesteld aan ${name}: ${new_date} om ${new_time_slot}.\r\nDe klant ontvangt een e-mail.`,
+  });
+
+  return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Nieuw tijdstip voorgesteld', '<p class="ok">De klant ontvangt een e-mail.</p>') };
+}
+
+// ── GET /respond?token=CUSTOMER_TOKEN&action=accept|reject ────────
+async function handleRespond(event) {
+  const params = event.queryStringParameters || {};
+  const { token, action } = params;
+
+  if (!token || !action || !['accept', 'reject'].includes(action)) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige link.</p>') };
+  }
+
+  // Find booking by customer_token
+  const scanResult = await dynamo.send(new QueryCommand({
+    TableName: TABLE,
+    IndexName: 'token-index',
+    KeyConditionExpression: '#t = :token',
+    ExpressionAttributeNames: { '#t': 'token' },
+    ExpressionAttributeValues: { ':token': { S: token } },
+  }));
+
+  // customer_token is stored separately, so scan for it
+  // First try token-index, if not found, scan by customer_token
+  let item = scanResult.Items && scanResult.Items.length > 0 ? scanResult.Items[0] : null;
+
+  // If not found in token-index, the token might be a customer_token
+  // We need to do a full scan for customer_token (unavoidable without a separate GSI)
+  if (!item || item.customer_token?.S !== token) {
+    // Try to find by scanning — but since we stored customer_token as attribute,
+    // we'll use a scan with filter. This is OK for low volume.
+    const { ScanCommand } = require('@aws-sdk/client-dynamodb');
+    const scanAll = await dynamo.send(new ScanCommand({
+      TableName: TABLE,
+      FilterExpression: 'customer_token = :ct',
+      ExpressionAttributeValues: { ':ct': { S: token } },
+    }));
+    item = scanAll.Items && scanAll.Items.length > 0 ? scanAll.Items[0] : null;
+  }
+
+  if (!item) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Token niet gevonden.</p>') };
+  }
+
+  const expiresAt = Number(item.token_expires_at?.N || 0);
+  if (Date.now() / 1000 > expiresAt) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Token is verlopen.</p>') };
+  }
+
+  const status = item.status?.S;
+  if (status === 'CONFIRMED' || status === 'CANCELLED') {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Deze actie is al uitgevoerd.</p>') };
+  }
+
+  const name = item.name.S;
+  const email = item.email.S;
+  const phone = item.phone.S;
+  const date = item.date.S;
+  const time_slot = item.time_slot.S;
+  const service = item.service.S;
+  const suggestedDate = item.suggested_date?.S || date;
+  const suggestedTime = item.suggested_time_slot?.S || time_slot;
+
+  if (action === 'accept') {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE,
+      Key: { date: { S: date }, time_slot: { S: time_slot } },
+      UpdateExpression: 'SET #s = :status',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':status': { S: 'CONFIRMED' } },
+    }));
+
+    const icsContent = generateICS({ name, email, date: suggestedDate, time_slot: suggestedTime, service });
+
+    await sendBookingEmail({
+      to: email,
+      from: FROM_EMAIL,
+      bcc: SIBEL_EMAIL,
+      name,
+      date: suggestedDate,
+      time_slot: suggestedTime,
+      service,
+      icsContent,
+    });
+
+    await sendPlainEmail({
+      to: SIBEL_EMAIL,
+      from: FROM_EMAIL,
+      subject: `${name} heeft het nieuwe tijdstip geaccepteerd`,
+      body: `${name} heeft het nieuwe tijdstip geaccepteerd: ${suggestedDate} om ${suggestedTime}.`,
+    });
+
+    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Bevestigd!', '<p class="ok">U ontvangt een bevestiging per e-mail.</p>') };
+  }
+
+  if (action === 'reject') {
+    await dynamo.send(new UpdateItemCommand({
+      TableName: TABLE,
+      Key: { date: { S: date }, time_slot: { S: time_slot } },
+      UpdateExpression: 'SET #s = :status',
+      ExpressionAttributeNames: { '#s': 'status' },
+      ExpressionAttributeValues: { ':status': { S: 'CANCELLED' } },
+    }));
+
+    await sendPlainEmail({
+      to: email,
+      from: FROM_EMAIL,
+      subject: 'Uw afspraak bij Q-Atelier',
+      body:
+        `Beste ${name},\r\n\r\n` +
+        `Helaas. Neem contact op met Sibel via +31 6 85 56 95 51 of q.atelier89@gmail.com om een passend tijdstip te vinden.\r\n\r\n` +
+        `Met vriendelijke groet,\r\nQ-Atelier`,
+    });
+
+    const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
+    await sendPlainEmail({
+      to: SIBEL_EMAIL,
+      from: FROM_EMAIL,
+      subject: `${name} heeft het nieuwe tijdstip afgewezen`,
+      body:
+        `${name} heeft het nieuwe tijdstip afgewezen.\r\n\r\n` +
+        `Klantgegevens:\r\n` +
+        `Naam: ${name}\r\n` +
+        `E-mail: ${email}\r\n` +
+        `Telefoon: ${phone}\r\n` +
+        `WhatsApp: ${whatsappUrl}`,
+    });
+
+    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Sibel neemt contact met u op.</p>') };
+  }
 }

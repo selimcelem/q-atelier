@@ -161,9 +161,46 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ---
 
+## Phase 3 — Manual Booking Confirmation Flow (2026-03-30)
+
+### Booking flow change
+- Bookings now created with status `PENDING` instead of auto-confirmed
+- Sibel receives email with customer details + 3 action links (accept/reschedule/reject)
+- Sibel receives SMS notification to check email
+- Customer receives "aanvraag ontvangen" email, no .ics yet
+
+### New Lambda endpoints
+- `GET /action?token=TOKEN&action=accept|reject` — Sibel accepts or rejects from email
+- `GET /reschedule?token=TOKEN` — Sibel sees date/time picker form
+- `POST /reschedule` — Sibel submits new proposed date/time
+- `GET /respond?token=CUSTOMER_TOKEN&action=accept|reject` — Customer responds to reschedule proposal
+
+### Token-based security
+- UUID token generated per booking, stored in DynamoDB
+- Tokens expire after 7 days
+- Single-use: once accept/reject is clicked, status changes and token can't be reused
+- `token-index` GSI added to DynamoDB for efficient token lookups
+
+### DynamoDB schema additions
+- New fields: `status`, `token`, `token_expires_at`, `suggested_date`, `suggested_time_slot`, `customer_token`
+- New GSI: `token-index` (hash key: `token`, projection: ALL)
+
+### API Gateway additions
+- 4 new routes: GET /action, GET /reschedule, POST /reschedule, GET /respond
+- CORS OPTIONS for POST /reschedule
+- All routes proxied to same Lambda function
+
+### Frontend update
+- Success message changed to: "Bedankt voor uw aanvraag! Sibel bevestigt uw afspraak zo snel mogelijk per e-mail."
+
+### Dependencies
+- Added `uuid` package to Lambda for token generation
+
+---
+
 ## TODO — next sessions
 
-### Phase 3 — SEO
+### SEO
 - [ ] JSON-LD LocalBusiness structured data
 - [ ] Sitemap + robots.txt
 - [ ] Google Business Profile setup
