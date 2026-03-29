@@ -13,6 +13,7 @@ override.tf.json
 # Lambda
 lambda/**/node_modules/
 lambda/**/*.zip
+*.zip
 
 # Secrets / local config
 .env
