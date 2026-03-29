@@ -209,6 +209,8 @@ git push origin main
 - Appointment duration: 60 minutes
 - Available slots: Mon-Sat 10:00 11:00 13:00 14:00 15:00 16:00
 - Sunday: closed
+- Never add Co-authored-by lines to commits
+- Never add any Claude or Anthropic attribution to commit messages
 
 ## Business details (use these in the frontend)
 
