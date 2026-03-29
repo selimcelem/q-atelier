@@ -93,6 +93,33 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ---
 
+## Phase 2 — Lambda + Frontend (2026-03-29)
+
+### Lambda implementation
+- Implemented `GET /slots` — queries DynamoDB `month-index` GSI, generates full month availability map (Mon–Sat, 6 slots/day), marks booked vs available
+- Implemented `POST /booking` — validates all fields, checks date not in past, not Sunday, valid slot; conditional DynamoDB write prevents double-booking (409 on conflict)
+- Created `lambda/booking/ics.js` — generates iCalendar (.ics) with ORGANIZER, ATTENDEE, location, 60-min duration
+- Created `lambda/booking/email.js` — sends raw MIME email via SES with .ics attachment (text/calendar; method=REQUEST), BCC to Sibel
+- SNS SMS notification to Sibel on each booking: "Nieuwe afspraak: [name] op [date] om [time_slot] voor [service]"
+- **Deployed** Lambda via `aws lambda update-function-code`
+
+### Frontend
+- Rebuilt `index.html` as full single-page site: header, hero, services (3 cards), booking calendar, contact, footer
+- Created `style.css` — warm bridal design (cream/blush/gold palette, Playfair Display + Inter fonts, responsive)
+- Created `main.js` — interactive calendar with month navigation, date/slot picker, booking form with loading states and error handling
+- Set `window.API_ENDPOINT` from `terraform output api_endpoint`
+- **Deployed** to S3 via `aws s3 sync` (HTML with no-cache, assets with 1-year cache)
+
+### What's working
+- [x] GET /slots returns monthly availability from DynamoDB
+- [x] POST /booking creates bookings with double-booking prevention
+- [x] SES sends confirmation email with .ics calendar invite
+- [x] SNS sends SMS alert to Sibel
+- [x] Frontend calendar loads slots and allows booking
+- [x] Frontend deployed to S3
+
+---
+
 ## TODO — next sessions
 
 ### When Sibel's registrar is known
@@ -101,15 +128,6 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - [ ] Re-run `terraform apply` — CloudFront should deploy successfully
 - [ ] Add `SITE_BUCKET_NAME` and `CLOUDFRONT_DISTRIBUTION_ID` to GitHub Actions secrets
 - [ ] Point domain DNS (A/CNAME) at CloudFront distribution
-
-### Claude Code session — Phase 2 (Lambda + frontend)
-- [ ] Implement `GET /slots` in `lambda/booking/index.js`
-- [ ] Implement `POST /booking` in `lambda/booking/index.js`
-- [ ] `.ics` file generation
-- [ ] SES email with `.ics` attachment to customer + Sibel
-- [ ] SNS SMS notification to Sibel
-- [ ] Build booking calendar UI in `frontend/public/`
-- [ ] Deploy frontend to S3
 
 ### Phase 3 — SEO
 - [ ] JSON-LD LocalBusiness structured data
