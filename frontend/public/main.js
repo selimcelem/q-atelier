@@ -2,12 +2,22 @@
 document.addEventListener('DOMContentLoaded', function() {
   var toggle = document.getElementById('navToggle');
   var links = document.getElementById('navLinks');
-  if (!toggle || !links) return;
-  toggle.addEventListener('click', function(e) {
+  if (!toggle || !links) {
+    console.warn('[nav] toggle or links element not found');
+    return;
+  }
+  console.log('[nav] hamburger menu initialized');
+
+  function handleToggle(e) {
     e.preventDefault();
     e.stopPropagation();
+    console.log('[nav] hamburger tapped, event:', e.type);
     links.classList.toggle('open');
-  });
+  }
+
+  toggle.addEventListener('click', handleToggle);
+  toggle.addEventListener('touchstart', handleToggle, { passive: false });
+
   var navAnchors = links.querySelectorAll('a');
   for (var i = 0; i < navAnchors.length; i++) {
     navAnchors[i].addEventListener('click', function() {
