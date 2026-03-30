@@ -210,6 +210,47 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ---
 
+## Phase 4 — Branding, Redesign, Subpages, Availability (2026-03-30)
+
+### Branding
+- Renamed "Q — Atelier" / "Q-Atelier" to "Q-atelier" everywhere (frontend, emails, Lambda HTML pages)
+
+### Color palette redesign
+- New warm blush palette inspired by damore.nl
+- Background: #FDFAF7, accent: #D4A5A5 / #C68B8B, text: #3D2B2B
+- Hero background: #F9F0F0, card background: #FBF5F5
+- Updated all CSS variables and color references
+
+### Calendar & availability updates
+- Day-specific availability slots:
+  - Ma: 12:00–17:00 (6 slots), Di/Do/Vr: 10:00–17:00 (7 slots), Za: 12:00–17:00 (6 slots)
+  - Wo + Zo: gesloten (no slots)
+- Past time slots on today greyed out using Amsterdam timezone (Europe/Amsterdam)
+- Wednesday now shown as closed day alongside Sunday
+- Opening hours added to contact section
+
+### Contact section icons
+- WhatsApp SVG icon (green #25D366) before WhatsApp link
+- Instagram SVG icon before Instagram link
+- Google Maps pin icon before address, linking to Google Maps
+
+### Email bug fix (reschedule accept)
+- De eigenaar now receives a notification email instead of a copy of the customer confirmation
+- Subject: "[naam] heeft uw voorgestelde datum geaccepteerd"
+- Body includes confirmed date, time, service + .ics attachment
+- Added `sendNotificationWithIcs` to email.js
+
+### New subpages
+- `diensten.html` — full pricing tables (bruidsjurken, galajurken, broeken, jassen, overige, woningtextiel)
+- `over-ons.html` — brand story (Wie zijn wij, Onze werkwijze, Waarom Q-atelier), reviews placeholder
+- Navigation updated: Diensten → diensten.html, Over ons → over-ons.html
+
+### Deployment
+- Frontend synced to S3, CloudFront cache invalidated
+- Lambda redeployed with updated code
+
+---
+
 ## TODO — next sessions
 
 ### SEO

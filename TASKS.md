@@ -1,6 +1,6 @@
 # Q-Atelier — Task Tracker
 
-Last updated: 2026-03-31
+Last updated: 2026-03-30
 
 Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 
@@ -14,22 +14,22 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ---
 
 ## Branding
-- [ ] Rename "Q — Atelier" (with dashes/spaces) to "Q-atelier" everywhere in frontend
+- [x] Rename "Q — Atelier" (with dashes/spaces) to "Q-atelier" everywhere in frontend
 
 ---
 
 ## Frontend — Design
-- [ ] Redesign color palette: light pink, white, beige — inspired by damore.nl
-- [ ] Add WhatsApp icon to contact section
-- [ ] Add Instagram icon to contact section
-- [ ] Add Google Maps link + icon to address in contact section
+- [x] Redesign color palette: light pink, white, beige — inspired by damore.nl
+- [x] Add WhatsApp icon to contact section
+- [x] Add Instagram icon to contact section
+- [x] Add Google Maps link + icon to address in contact section
 
 ---
 
 ## Frontend — Pages & Content
-- [ ] Add "Diensten" subpage with full pricing list (see below) + photos + details
-- [ ] Add "Over ons" subpage with brand story (no full name), photos, client reviews section
-- [ ] Add pricing to Diensten page:
+- [x] Add "Diensten" subpage with full pricing list + details
+- [x] Add "Over ons" subpage with brand story (no full name), client reviews section
+- [x] Add pricing to Diensten page:
   - Galajurken vermaak (full list)
   - Bruidsjurken vermaak (full list)
   - Broeken (full list)
@@ -40,10 +40,10 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ---
 
 ## Booking — Calendar
-- [ ] Fix: past dates and times should be greyed out and unclickable
+- [x] Fix: past dates and times should be greyed out and unclickable
   - Past dates: entire day greyed out
-  - Today: slots before current time greyed out
-- [ ] Update available slots to match Sibel's availability:
+  - Today: slots before current time greyed out (Amsterdam timezone)
+- [x] Update available slots to match availability:
   - Maandag: 12:00 – 18:00
   - Dinsdag: 10:00 – 18:00
   - Woensdag: GESLOTEN
@@ -59,9 +59,9 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ---
 
 ## Booking — Email flow
-- [ ] Fix: when client accepts rescheduled date, q-atelier89@gmail.com gets wrong email
-  - Currently: gets a copy of the client confirmation email
-  - Should get: "De klant heeft uw voorgestelde datum geaccepteerd: [date] om [time] voor [service]" + .ics
+- [x] Fix: when client accepts rescheduled date, q-atelier89@gmail.com gets wrong email
+  - Previously: got a copy of the client confirmation email
+  - Now: gets notification "De klant heeft uw voorgestelde datum geaccepteerd" + .ics
 
 ---
 

@@ -6,6 +6,17 @@
     'Juli', 'Augustus', 'September', 'Oktober', 'November', 'December'
   ];
 
+  // Day-specific slots: 0=Sun, 1=Mon, ..., 6=Sat
+  const SLOTS_BY_DAY = {
+    0: [],                                                    // Zondag: gesloten
+    1: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Maandag
+    2: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Dinsdag
+    3: [],                                                    // Woensdag: gesloten
+    4: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Donderdag
+    5: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Vrijdag
+    6: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Zaterdag
+  };
+
   let currentYear, currentMonth; // 1-indexed month
   let slotsData = {};
   let selectedDate = null;
@@ -24,8 +35,20 @@
   const bookingForm = document.getElementById('bookingForm');
   const bookingMessage = document.getElementById('bookingMessage');
 
+  function getAmsterdamNow() {
+    return new Date(new Date().toLocaleString('en-US', { timeZone: 'Europe/Amsterdam' }));
+  }
+
+  function getAmsterdamHour() {
+    return getAmsterdamNow().getHours();
+  }
+
+  function getAmsterdamMinutes() {
+    return getAmsterdamNow().getMinutes();
+  }
+
   function init() {
-    const now = new Date();
+    const now = getAmsterdamNow();
     currentYear = now.getFullYear();
     currentMonth = now.getMonth() + 1;
     prevBtn.addEventListener('click', () => navigate(-1));
@@ -53,7 +76,7 @@
     calendarLoading.style.display = 'block';
 
     // Don't allow navigating to months before current
-    const now = new Date();
+    const now = getAmsterdamNow();
     prevBtn.disabled = currentYear === now.getFullYear() && currentMonth === now.getMonth() + 1;
 
     try {
@@ -73,12 +96,11 @@
     calendarGrid.innerHTML = '';
     const daysInMonth = new Date(currentYear, currentMonth, 0).getDate();
     const firstDay = new Date(currentYear, currentMonth - 1, 1).getDay();
-    // Convert Sunday=0 to Monday-start: Mon=0, Tue=1, ..., Sun=6
     const startOffset = firstDay === 0 ? 6 : firstDay - 1;
 
-    const today = new Date().toISOString().split('T')[0];
+    const now = getAmsterdamNow();
+    const today = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
-    // Empty cells for offset
     for (let i = 0; i < startOffset; i++) {
       const empty = document.createElement('div');
       empty.className = 'cal-day empty';
@@ -88,7 +110,7 @@
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${currentYear}-${String(currentMonth).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
       const dayOfWeek = new Date(currentYear, currentMonth - 1, day).getDay();
-      const isSunday = dayOfWeek === 0;
+      const isClosed = dayOfWeek === 0 || dayOfWeek === 3; // Sunday or Wednesday
       const isPast = dateStr < today;
 
       const el = document.createElement('button');
@@ -96,8 +118,8 @@
       el.className = 'cal-day';
       el.textContent = day;
 
-      if (isSunday) {
-        el.classList.add('sunday');
+      if (isClosed) {
+        el.classList.add('closed');
       } else if (isPast) {
         el.classList.add('past');
       } else {
@@ -111,7 +133,6 @@
             el.classList.add('fully-booked');
           }
         } else {
-          // No data = future month with no bookings, all available
           el.classList.add('has-slots');
           el.addEventListener('click', () => selectDate(dateStr));
         }
@@ -128,25 +149,42 @@
     formContainer.style.display = 'none';
     bookingMessage.style.display = 'none';
 
-    // Re-render to update selected state
     renderCalendar();
 
-    // Show time slots
     const parts = dateStr.split('-');
     const dayNum = parseInt(parts[2], 10);
     const monthIdx = parseInt(parts[1], 10) - 1;
     timeslotsTitle.textContent = `${dayNum} ${MONTHS_NL[monthIdx]} ${parts[0]}`;
     timeslotsGrid.innerHTML = '';
 
+    const dayOfWeek = new Date(parseInt(parts[0]), monthIdx, dayNum).getDay();
+    const allSlots = SLOTS_BY_DAY[dayOfWeek] || [];
     const daySlots = slotsData[dateStr] || {};
-    const allSlots = ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+
+    const now = getAmsterdamNow();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const isToday = dateStr === todayStr;
+    const currentHour = getAmsterdamHour();
+    const currentMinutes = getAmsterdamMinutes();
 
     allSlots.forEach(slot => {
       const status = daySlots[slot] || 'available';
       const btn = document.createElement('button');
       btn.type = 'button';
-      btn.className = `slot-btn ${status}`;
+      btn.className = 'slot-btn';
       btn.textContent = slot;
+
+      // Check if slot is in the past for today
+      if (isToday) {
+        const [slotH, slotM] = slot.split(':').map(Number);
+        if (slotH < currentHour || (slotH === currentHour && slotM <= currentMinutes)) {
+          btn.classList.add('past-slot');
+          timeslotsGrid.appendChild(btn);
+          return;
+        }
+      }
+
+      btn.classList.add(status);
       if (status === 'available') {
         btn.addEventListener('click', () => selectSlot(dateStr, slot));
       }
@@ -161,7 +199,6 @@
     selectedSlot = slot;
     bookingMessage.style.display = 'none';
 
-    // Update slot button states
     timeslotsGrid.querySelectorAll('.slot-btn.available').forEach(btn => {
       btn.classList.toggle('selected', btn.textContent === slot);
     });

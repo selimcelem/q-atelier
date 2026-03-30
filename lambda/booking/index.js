@@ -2,7 +2,7 @@ const { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand, ScanCom
 const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
 const { v4: uuidv4 } = require('uuid');
 const { generateICS } = require('./ics');
-const { sendBookingEmail, sendPlainEmail, sendHtmlEmail } = require('./email');
+const { sendBookingEmail, sendPlainEmail, sendHtmlEmail, sendNotificationWithIcs } = require('./email');
 
 const dynamo = new DynamoDBClient({});
 const sns = new SNSClient({ region: 'eu-west-1' });
@@ -12,7 +12,20 @@ const SNS_ARN = process.env.SNS_TOPIC_ARN;
 const SIBEL_EMAIL = process.env.SIBEL_EMAIL;
 const FROM_EMAIL = process.env.FROM_EMAIL;
 
-const ALLOWED_SLOTS = ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00'];
+// Day-specific slots: 0=Sun, 1=Mon, ..., 6=Sat
+const SLOTS_BY_DAY = {
+  0: [],                                                    // Zondag: gesloten
+  1: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Maandag
+  2: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Dinsdag
+  3: [],                                                    // Woensdag: gesloten
+  4: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Donderdag
+  5: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Vrijdag
+  6: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Zaterdag
+};
+
+// Flat list of all possible slots for validation
+const ALL_SLOTS = [...new Set(Object.values(SLOTS_BY_DAY).flat())].sort();
+
 const TOKEN_TTL_DAYS = 7;
 
 const JSON_HEADERS = {
@@ -78,7 +91,7 @@ function validateToken(item) {
 
 function htmlPage(title, body) {
   return `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} — Q-Atelier</title>
+<title>${title} — Q-atelier</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#FAF8F5;color:#2C2623;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:2rem}
 .card{max-width:500px;width:100%;background:#fff;border:1px solid #E8DAD2;padding:2.5rem;text-align:center}
 h1{font-size:1.4rem;margin-bottom:1rem;color:#2C2623}p{font-size:0.95rem;line-height:1.7;color:#5A4F4A;margin-bottom:0.8rem}
@@ -118,10 +131,11 @@ async function getSlots(event) {
   for (let day = 1; day <= daysInMonth; day++) {
     const dateStr = `${year}-${String(mon).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
     const dayOfWeek = new Date(year, mon - 1, day).getDay();
-    if (dayOfWeek === 0) continue;
+    const daySlotList = SLOTS_BY_DAY[dayOfWeek];
+    if (!daySlotList || daySlotList.length === 0) continue; // closed days
 
     const daySlots = {};
-    for (const slot of ALLOWED_SLOTS) {
+    for (const slot of daySlotList) {
       daySlots[slot] = booked.has(`${dateStr}|${slot}`) ? 'booked' : 'available';
     }
     slots[dateStr] = daySlots;
@@ -146,10 +160,12 @@ async function createBooking(event) {
     return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Datum mag niet in het verleden liggen' }) };
   }
   const [y, m, d] = date.split('-').map(Number);
-  if (new Date(y, m - 1, d).getDay() === 0) {
-    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Op zondag zijn wij gesloten' }) };
+  const dayOfWeek = new Date(y, m - 1, d).getDay();
+  const allowedSlots = SLOTS_BY_DAY[dayOfWeek];
+  if (!allowedSlots || allowedSlots.length === 0) {
+    return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Op deze dag zijn wij gesloten' }) };
   }
-  if (!ALLOWED_SLOTS.includes(time_slot)) {
+  if (!allowedSlots.includes(time_slot)) {
     return { statusCode: 400, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Ongeldig tijdstip' }) };
   }
 
@@ -188,13 +204,13 @@ async function createBooking(event) {
 
   const fd = formatDate(date);
 
-  // Email to Sibel with action buttons
+  // Email to owner with action buttons
   const acceptUrl = `${API_BASE}/action?token=${token}&action=accept`;
   const rescheduleUrl = `${API_BASE}/reschedule?token=${token}`;
   const rejectUrl = `${API_BASE}/action?token=${token}&action=reject`;
 
   const btnStyle = 'display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;text-decoration:none;border-radius:4px;color:#ffffff;';
-  const sibelHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;background:#FAF8F5;padding:20px;color:#2C2623;">
+  const ownerHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;background:#FAF8F5;padding:20px;color:#2C2623;">
 <div style="max-width:500px;margin:0 auto;background:#ffffff;border:1px solid #E8DAD2;padding:30px;">
 <h2 style="margin:0 0 20px;font-size:20px;color:#2C2623;">Nieuwe afspraak aanvraag</h2>
 <table style="width:100%;border-collapse:collapse;margin-bottom:24px;font-size:15px;">
@@ -216,10 +232,10 @@ async function createBooking(event) {
     to: SIBEL_EMAIL,
     from: FROM_EMAIL,
     subject: `Nieuwe afspraak aanvraag — ${name} op ${fd} om ${time_slot}`,
-    html: sibelHtml,
+    html: ownerHtml,
   });
 
-  // SMS to Sibel
+  // SMS to owner
   await sns.send(new PublishCommand({
     TopicArn: SNS_ARN,
     Message: `Nieuwe afspraak aanvraag: ${name} op ${fd} om ${time_slot} voor ${service}. Check je mail.`,
@@ -229,12 +245,12 @@ async function createBooking(event) {
   await sendPlainEmail({
     to: email,
     from: FROM_EMAIL,
-    subject: 'Uw afspraak aanvraag bij Q-Atelier is ontvangen',
+    subject: 'Uw afspraak aanvraag bij Q-atelier is ontvangen',
     body:
       `Beste ${name},\r\n\r\n` +
       `Wij hebben uw aanvraag ontvangen voor een afspraak op ${fd} om ${time_slot} voor ${service}.\r\n\r\n` +
       `Wij nemen zo snel mogelijk contact op ter bevestiging.\r\n\r\n` +
-      `Met vriendelijke groet,\r\nQ-Atelier`,
+      `Met vriendelijke groet,\r\nQ-atelier`,
   });
 
   return { statusCode: 200, headers: JSON_HEADERS, body: JSON.stringify({ message: 'Aanvraag ontvangen' }) };
@@ -275,15 +291,16 @@ async function handleAction(event) {
     const icsContent = generateICS({ name, email, date, time_slot, service });
     await sendBookingEmail({ to: email, from: FROM_EMAIL, name, date: fd, time_slot, service, icsContent });
 
-    const sibelIcs = generateICS({ name, email, date, time_slot, service });
-    await sendBookingEmail({
+    const ownerIcs = generateICS({ name, email, date, time_slot, service });
+    await sendNotificationWithIcs({
       to: SIBEL_EMAIL,
       from: FROM_EMAIL,
-      name,
-      date: fd,
-      time_slot,
-      service,
-      icsContent: sibelIcs,
+      subject: `Afspraak bevestigd — ${name} op ${fd} om ${time_slot}`,
+      body:
+        `Je hebt de afspraak van ${name} op ${fd} om ${time_slot} bevestigd.\r\n\r\n` +
+        `Service: ${service}\r\n` +
+        `De klant ontvangt een bevestigingsmail met .ics bijlage.`,
+      icsContent: ownerIcs,
     });
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Afspraak bevestigd', `<p class="ok">${name} ontvangt een bevestiging per e-mail.</p>`) };
@@ -301,12 +318,12 @@ async function handleAction(event) {
     await sendPlainEmail({
       to: email,
       from: FROM_EMAIL,
-      subject: 'Uw afspraak bij Q-Atelier',
+      subject: 'Uw afspraak bij Q-atelier',
       body:
         `Beste ${name},\r\n\r\n` +
         `Helaas kunnen wij uw afspraak op dit moment niet bevestigen.\r\n` +
         `Wij nemen zo snel mogelijk contact met u op.\r\n\r\n` +
-        `Met vriendelijke groet,\r\nQ-Atelier`,
+        `Met vriendelijke groet,\r\nQ-atelier`,
     });
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
@@ -352,10 +369,10 @@ async function showRescheduleForm(event) {
   const fd = formatDate(date);
   const todayStr = new Date().toISOString().split('T')[0];
 
-  const slotsOptions = ALLOWED_SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
+  const slotsOptions = ALL_SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
 
   const formHtml = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nieuw tijdstip voorstellen — Q-Atelier</title>
+<title>Nieuw tijdstip voorstellen — Q-atelier</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#FAF8F5;color:#2C2623;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:2rem}
 .card{max-width:500px;width:100%;background:#fff;border:1px solid #E8DAD2;padding:2.5rem}
 h1{font-size:1.3rem;margin-bottom:1.5rem;text-align:center}
@@ -364,7 +381,8 @@ label{display:block;font-size:0.85rem;margin-bottom:0.3rem;color:#5A4F4A}
 input,select{width:100%;padding:0.7rem;border:1px solid #E8DAD2;font-size:0.95rem;margin-bottom:1rem;background:#FAF8F5}
 input:focus,select:focus{outline:none;border-color:#C9A99A}
 button{width:100%;padding:0.85rem;border:1px solid #2C2623;background:transparent;font-size:0.85rem;letter-spacing:0.08em;text-transform:uppercase;cursor:pointer}
-button:hover{background:#2C2623;color:#FAF8F5}</style></head>
+button:hover{background:#2C2623;color:#FAF8F5}
+.note{font-size:0.8rem;color:#8A7F7A;margin-top:0.5rem;text-align:center}</style></head>
 <body><div class="card">
 <h1>Nieuw tijdstip voorstellen</h1>
 <div class="info">
@@ -380,6 +398,7 @@ Service: ${service}
 <input type="date" id="new_date" name="new_date" min="${todayStr}" required>
 <label for="new_time_slot">Nieuw tijdstip</label>
 <select id="new_time_slot" name="new_time_slot" required>${slotsOptions}</select>
+<p class="note">Let op: wo en zo gesloten. Beschikbare tijden variëren per dag.</p>
 <button type="submit">Voorstellen</button>
 </form>
 </div></body></html>`;
@@ -398,8 +417,15 @@ async function handleReschedule(event) {
     return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Alle velden zijn verplicht.</p>') };
   }
 
-  if (!ALLOWED_SLOTS.includes(new_time_slot)) {
-    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldig tijdstip.</p>') };
+  // Validate slot for the selected day
+  const [ny, nm, nd] = new_date.split('-').map(Number);
+  const newDayOfWeek = new Date(ny, nm - 1, nd).getDay();
+  const validSlots = SLOTS_BY_DAY[newDayOfWeek];
+  if (!validSlots || validSlots.length === 0) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Op deze dag zijn wij gesloten.</p>') };
+  }
+  if (!validSlots.includes(new_time_slot)) {
+    return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Dit tijdstip is niet beschikbaar op deze dag.</p>') };
   }
 
   const item = await findByToken(token);
@@ -461,13 +487,13 @@ async function handleReschedule(event) {
 <a href="${acceptUrl}" style="${btnStyle}background:#3A7D44;margin:0 8px 10px;">Accepteren</a>
 <a href="${rejectUrl}" style="${btnStyle}background:#A63D40;margin:0 8px 10px;">Afwijzen</a>
 </div>
-<p style="font-size:13px;color:#8A7F7A;">Met vriendelijke groet,<br>Q-Atelier</p>
+<p style="font-size:13px;color:#8A7F7A;">Met vriendelijke groet,<br>Q-atelier</p>
 </div></body></html>`;
 
   await sendHtmlEmail({
     to: email,
     from: FROM_EMAIL,
-    subject: `Nieuw tijdstip voorgesteld — Q-Atelier`,
+    subject: `Nieuw tijdstip voorgesteld — Q-atelier`,
     html: rescheduleHtml,
   });
 
@@ -569,15 +595,16 @@ async function handleRespond(event) {
       icsContent,
     });
 
-    const sibelIcs = generateICS({ name, email, date: suggestedDate, time_slot: suggestedTime, service });
-    await sendBookingEmail({
+    // Owner gets notification with .ics (not a copy of customer email)
+    const ownerIcs = generateICS({ name, email, date: suggestedDate, time_slot: suggestedTime, service });
+    await sendNotificationWithIcs({
       to: SIBEL_EMAIL,
       from: FROM_EMAIL,
-      name,
-      date: fsd,
-      time_slot: suggestedTime,
-      service,
-      icsContent: sibelIcs,
+      subject: `${name} heeft uw voorgestelde datum geaccepteerd`,
+      body:
+        `De klant heeft uw voorgestelde datum geaccepteerd: ${fsd} om ${suggestedTime} voor ${service}.\r\n\r\n` +
+        `De klant ontvangt een bevestigingsmail met .ics bijlage.`,
+      icsContent: ownerIcs,
     });
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Bevestigd!', '<p class="ok">U ontvangt een bevestiging per e-mail.</p>') };
@@ -595,11 +622,11 @@ async function handleRespond(event) {
     await sendPlainEmail({
       to: email,
       from: FROM_EMAIL,
-      subject: 'Uw afspraak bij Q-Atelier',
+      subject: 'Uw afspraak bij Q-atelier',
       body:
         `Beste ${name},\r\n\r\n` +
         `Helaas. Neem contact op met ons via +31 6 85 56 95 51 of q.atelier89@gmail.com om een passend tijdstip te vinden.\r\n\r\n` +
-        `Met vriendelijke groet,\r\nQ-Atelier`,
+        `Met vriendelijke groet,\r\nQ-atelier`,
     });
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
@@ -616,7 +643,7 @@ async function handleRespond(event) {
         `WhatsApp: ${whatsappUrl}`,
     });
 
-    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Q-Atelier neemt contact met u op.</p>') };
+    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Q-atelier neemt contact met u op.</p>') };
   }
 
   return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige actie.</p>') };
