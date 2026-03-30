@@ -271,8 +271,7 @@ nav {
 /* ── Section Divider ─────────────────────────────────────── */
 .section-divider {
   width: 100%;
-  padding: 2rem 0;
-  text-align: center;
+  padding: 1rem 0;
   overflow: hidden;
 }
 
