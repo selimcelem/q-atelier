@@ -99,11 +99,13 @@ jobs:
           aws s3 sync frontend/public/ s3://${{ secrets.SITE_BUCKET_NAME }} \
             --delete \
             --cache-control "max-age=31536000" \
-            --exclude "*.html"
+            --exclude "*.html" \
+            --exclude "video/*"
           aws s3 sync frontend/public/ s3://${{ secrets.SITE_BUCKET_NAME }} \
             --delete \
             --cache-control "no-cache" \
-            --include "*.html"
+            --include "*.html" \
+            --exclude "video/*"
 
       - name: Invalidate CloudFront cache
         run: |
