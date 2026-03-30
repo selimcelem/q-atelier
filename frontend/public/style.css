@@ -3,7 +3,7 @@
 
 :root {
   --bg: #FDFAF7;
-  --bg-alt: #F5ECEC;
+  --bg-alt: #FBF5F5;
   --hero-bg: #F9F0F0;
   --accent: #D4A5A5;
   --accent-deep: #C68B8B;
@@ -220,7 +220,7 @@ nav {
 .intro-strip {
   display: block;
   width: 100%;
-  padding: 4.5rem 2rem 0;
+  padding: 4.5rem 2rem;
   background: var(--bg-alt);
   border-top: 1px solid var(--border);
   box-sizing: border-box;
@@ -269,32 +269,30 @@ nav {
 
 /* ── Section Divider ─────────────────────────────────────── */
 .section-divider {
-  position: relative;
-  text-align: center;
+  display: flex;
+  align-items: center;
   width: 100%;
   padding: 0;
-  margin-top: 0;
+  margin-top: -45px;
+  position: relative;
   z-index: 1;
-  background-color: var(--bg);
 }
 
-.section-divider::before {
+.section-divider::before,
+.section-divider::after {
   content: '';
-  position: absolute;
-  top: 50%;
-  left: 0;
-  right: 0;
+  flex: 1;
   height: 1.5px;
   background-color: #dfc0be;
-  transform: translateY(-50%);
 }
 
 .divider-rings {
-  position: relative;
-  display: inline-block;
-  z-index: 2;
-  padding: 0;
-  background-color: transparent;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  background-color: #FBF5F5;
+  padding: 0 4px;
+  margin: 0;
 }
 
 .divider-rings img {
@@ -305,8 +303,7 @@ nav {
 
 /* ── Services ────────────────────────────────────────────── */
 .services {
-  padding: 3rem 2rem 7rem;
-  background-color: var(--bg);
+  padding: 7rem 2rem;
   max-width: 1000px;
   margin: 0 auto;
   text-align: center;
@@ -864,9 +861,9 @@ footer {
   }
   .hero h1 { font-size: 2.4rem; }
   .hero { height: 85vh; }
-  .intro-strip { padding: 3rem 1.5rem 0; }
+  .intro-strip { padding: 3rem 1.5rem; }
   .intro-grid { grid-template-columns: 1fr !important; gap: 2rem; }
-  .services { padding: 3rem 1.5rem 5rem; }
+  .services { padding: 5rem 1.5rem; }
   .services-grid { grid-template-columns: 1fr; gap: 1.5rem; }
   .about { padding: 5rem 1.5rem; }
   .booking { padding: 5rem 1.5rem; }
