@@ -736,42 +736,6 @@ footer {
   margin: 2rem 0 1rem;
 }
 
-.price-table {
-  width: 100%;
-  border-collapse: collapse;
-  margin-bottom: 2rem;
-  table-layout: fixed;
-}
-.price-table th:first-child,
-.price-table td:first-child {
-  width: 75%;
-  text-align: left;
-}
-.price-table th:last-child,
-.price-table td:last-child {
-  width: 25%;
-  text-align: right;
-  white-space: nowrap;
-}
-.price-table th {
-  font-family: 'Jost', sans-serif;
-  font-size: 0.78rem;
-  font-weight: 400;
-  text-transform: uppercase;
-  letter-spacing: 0.06em;
-  color: var(--text-muted);
-  padding: 0.6rem 0;
-  border-bottom: 1px solid var(--border);
-}
-.price-table td {
-  padding: 0.7rem 0;
-  border-bottom: 1px solid var(--border);
-  font-size: 0.92rem;
-}
-.price-table td:last-child {
-  color: var(--text-light);
-}
-
 .page-note {
   font-size: 0.88rem;
   color: var(--text-muted);
