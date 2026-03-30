@@ -220,7 +220,7 @@ nav {
 .intro-strip {
   display: block;
   width: 100%;
-  padding: 4.5rem 2rem;
+  padding: 4.5rem 2rem 1.5rem;
   background: var(--bg-alt);
   border-top: 1px solid var(--border);
   box-sizing: border-box;
@@ -863,7 +863,7 @@ footer {
   }
   .hero h1 { font-size: 2.4rem; }
   .hero { height: 85vh; }
-  .intro-strip { padding: 3rem 1.5rem; }
+  .intro-strip { padding: 3rem 1.5rem 0.5rem; }
   .intro-grid { grid-template-columns: 1fr !important; gap: 2rem; }
   .services { padding: 5rem 1.5rem; }
   .services-grid { grid-template-columns: 1fr; gap: 1.5rem; }
