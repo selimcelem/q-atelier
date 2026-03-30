@@ -295,10 +295,12 @@ nav {
   margin: 0;
 }
 
-.divider-rings img {
+.divider-rings svg {
   width: 90px;
   height: auto;
   display: block;
+  isolation: isolate;
+  overflow: visible;
 }
 
 /* ── Services ────────────────────────────────────────────── */
