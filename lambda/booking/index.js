@@ -1,4 +1,4 @@
-const { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand } = require('@aws-sdk/client-dynamodb');
+const { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
 const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
 const { v4: uuidv4 } = require('uuid');
 const { generateICS } = require('./ics');
@@ -434,17 +434,25 @@ async function handleReschedule(event) {
   const acceptUrl = `${API_BASE}/respond?token=${customerToken}&action=accept`;
   const rejectUrl = `${API_BASE}/respond?token=${customerToken}&action=reject`;
 
-  await sendPlainEmail({
+  const btnStyle = 'display:inline-block;padding:12px 28px;font-size:15px;font-weight:600;text-decoration:none;border-radius:4px;color:#ffffff;';
+  const rescheduleHtml = `<!DOCTYPE html><html><head><meta charset="UTF-8"></head><body style="font-family:Arial,sans-serif;background:#FAF8F5;padding:20px;color:#2C2623;">
+<div style="max-width:500px;margin:0 auto;background:#ffffff;border:1px solid #E8DAD2;padding:30px;">
+<h2 style="margin:0 0 20px;font-size:20px;color:#2C2623;">Nieuw tijdstip voorgesteld</h2>
+<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Beste ${name},</p>
+<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Helaas is Sibel op <strong>${date}</strong> om <strong>${time_slot}</strong> niet beschikbaar.</p>
+<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Sibel stelt voor: <strong>${new_date}</strong> om <strong>${new_time_slot}</strong>.</p>
+<div style="text-align:center;margin:24px 0;">
+<a href="${acceptUrl}" style="${btnStyle}background:#3A7D44;margin:0 8px 10px;">Accepteren</a>
+<a href="${rejectUrl}" style="${btnStyle}background:#A63D40;margin:0 8px 10px;">Afwijzen</a>
+</div>
+<p style="font-size:13px;color:#8A7F7A;">Met vriendelijke groet,<br>Q-Atelier</p>
+</div></body></html>`;
+
+  await sendHtmlEmail({
     to: email,
     from: FROM_EMAIL,
     subject: `Nieuw tijdstip voorgesteld — Q-Atelier`,
-    body:
-      `Beste ${name},\r\n\r\n` +
-      `Helaas is Sibel op ${date} om ${time_slot} niet beschikbaar.\r\n\r\n` +
-      `Sibel stelt voor: ${new_date} om ${new_time_slot}.\r\n\r\n` +
-      `Accepteren:\r\n${acceptUrl}\r\n\r\n` +
-      `Afwijzen:\r\n${rejectUrl}\r\n\r\n` +
-      `Met vriendelijke groet,\r\nQ-Atelier`,
+    html: rescheduleHtml,
   });
 
   await sendPlainEmail({
@@ -466,32 +474,13 @@ async function handleRespond(event) {
     return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige link.</p>') };
   }
 
-  // Find booking by customer_token
-  const scanResult = await dynamo.send(new QueryCommand({
+  // Find booking by customer_token (scan required — no GSI for customer_token)
+  const scanResult = await dynamo.send(new ScanCommand({
     TableName: TABLE,
-    IndexName: 'token-index',
-    KeyConditionExpression: '#t = :token',
-    ExpressionAttributeNames: { '#t': 'token' },
-    ExpressionAttributeValues: { ':token': { S: token } },
+    FilterExpression: 'customer_token = :ct',
+    ExpressionAttributeValues: { ':ct': { S: token } },
   }));
-
-  // customer_token is stored separately, so scan for it
-  // First try token-index, if not found, scan by customer_token
   let item = scanResult.Items && scanResult.Items.length > 0 ? scanResult.Items[0] : null;
-
-  // If not found in token-index, the token might be a customer_token
-  // We need to do a full scan for customer_token (unavoidable without a separate GSI)
-  if (!item || item.customer_token?.S !== token) {
-    // Try to find by scanning — but since we stored customer_token as attribute,
-    // we'll use a scan with filter. This is OK for low volume.
-    const { ScanCommand } = require('@aws-sdk/client-dynamodb');
-    const scanAll = await dynamo.send(new ScanCommand({
-      TableName: TABLE,
-      FilterExpression: 'customer_token = :ct',
-      ExpressionAttributeValues: { ':ct': { S: token } },
-    }));
-    item = scanAll.Items && scanAll.Items.length > 0 ? scanAll.Items[0] : null;
-  }
 
   if (!item) {
     return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Token niet gevonden.</p>') };
