@@ -40,7 +40,7 @@ resource "aws_iam_role_policy" "lambda" {
       {
         # DynamoDB - bookings table only
         Effect   = "Allow"
-        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:UpdateItem"]
+        Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:Scan"]
         Resource = [var.bookings_table_arn, "${var.bookings_table_arn}/index/*"]
       },
       {
