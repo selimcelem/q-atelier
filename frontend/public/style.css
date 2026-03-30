@@ -269,27 +269,31 @@ nav {
 
 /* ── Section Divider ─────────────────────────────────────── */
 .section-divider {
-  display: flex;
-  align-items: center;
+  position: relative;
+  text-align: center;
   width: 100%;
   padding: 0;
   margin-top: -1px;
-  position: relative;
   z-index: 1;
 }
 
-.section-divider::before,
-.section-divider::after {
+.section-divider::before {
   content: '';
-  flex: 1;
+  position: absolute;
+  top: 50%;
+  left: 0;
+  right: 0;
   height: 1.5px;
   background-color: #dfc0be;
+  transform: translateY(-50%);
 }
 
 .divider-rings {
-  flex-shrink: 0;
-  width: 60px;
-  margin: 0;
+  position: relative;
+  display: inline-block;
+  z-index: 2;
+  padding: 0 8px;
+  background-color: #faf7f5;
 }
 
 .divider-rings img {
