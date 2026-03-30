@@ -268,6 +268,14 @@ nav {
   line-height: 1.6;
 }
 
+/* ── Section Divider ─────────────────────────────────────── */
+.section-divider {
+  width: 100%;
+  padding: 2rem 0;
+  text-align: center;
+  overflow: hidden;
+}
+
 /* ── Services ────────────────────────────────────────────── */
 .services {
   padding: 7rem 2rem;
