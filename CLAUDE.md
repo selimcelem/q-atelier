@@ -66,167 +66,160 @@ Opening hours: maandag t/m zaterdag 08:00 – 19:00, zondag gesloten
 - `lambda/booking/email.js` — SES email helper
 - `frontend/public/` — static site files
 
-## TONIGHT'S MISSION
+### TODAY'S MISSION
 
 Work through these tasks completely and autonomously. Make reasonable decisions without
 stopping to ask questions. Never add Co-authored-by or any Claude/Anthropic attribution
 to commits. Commit after each completed task with a descriptive message.
-
-Read REQUIREMENTS.md fully before starting — it contains the complete Phase 3 spec.
-
----
-
-### Task 1 — Update DynamoDB schema
-
-In modules/database/main.tf, add a new GSI to the bookings table:
-- GSI name: token-index
-- Hash key: token (S)
-- Projection: ALL
-
-Run terraform apply after updating.
+Mark each completed task in TASKS.md with [x].
 
 ---
 
-### Task 2 — Update Lambda: POST /booking (PENDING flow)
+### Task 1 — Branding: rename Q — Atelier to Q-atelier
 
-In lambda/booking/index.js, change POST /booking so that:
-- Booking is written to DynamoDB with status: PENDING (not auto-confirmed)
-- A unique token (UUID) is generated and stored with the booking
-- token_expires_at is set to 7 days from now (Unix timestamp)
-- De eigenaar ontvangt een email met:
-  - Customer details: naam, email, telefoon, datum, tijdstip, service
-  - Three action links (use the API Gateway endpoint as base URL):
-    - Accepteren: GET /action?token=TOKEN&action=accept
-    - Nieuw tijdstip voorstellen: GET /reschedule?token=TOKEN
-    - Afwijzen: GET /action?token=TOKEN&action=reject
-  - Subject: "Nieuwe afspraak aanvraag — [naam] op [datum] om [tijdstip]"
-- De eigenaar ontvangt SMS: "Nieuwe afspraak aanvraag: [naam] op [datum] om [tijdstip] voor [service]. Check je mail."
-- Customer receives email:
-  - Subject: "Uw afspraak aanvraag bij Q-Atelier is ontvangen"
-  - Body: "Beste [naam], wij hebben uw aanvraag ontvangen en nemen zo snel mogelijk contact op ter bevestiging."
-- Return 200 with message: "Aanvraag ontvangen"
+In frontend/public/index.html, style.css, main.js:
+- Replace all instances of "Q — Atelier" with "Q-atelier"
+- Replace all instances of "Q-Atelier" with "Q-atelier"
+- The logo should read "Q-atelier" everywhere
 
 ---
 
-### Task 3 — New Lambda endpoints
+### Task 2 — Fix: past dates and times greyed out
 
-Add these routes to lambda/booking/index.js:
-
-#### GET /action?token=TOKEN&action=accept|reject
-
-- Look up booking by token using token-index GSI
-- Validate token exists and not expired
-- Validate token not already used
-
-If action=accept:
-- Update DynamoDB status → CONFIRMED
-- Send customer confirmation email with .ics attachment (same as original confirmation)
-- Send de eigenaar email: "Je hebt de afspraak van [naam] op [datum] om [tijdstip] bevestigd."
-- Return HTML page: "Afspraak bevestigd. [naam] ontvangt een bevestiging per e-mail."
-
-If action=reject:
-- Update DynamoDB status → CANCELLED
-- Send customer email:
-  "Beste [naam], helaas kunnen wij uw afspraak op dit moment niet bevestigen.
-  De eigenaar neemt zo snel mogelijk contact met u op."
-  Include customer phone number and email in de eigenaar's copy.
-- Send de eigenaar email with customer naam, email, telefoon, WhatsApp link
-- Return HTML page: "Afspraak afgewezen. De klant wordt op de hoogte gesteld."
-
-#### GET /reschedule?token=TOKEN
-
-- Look up and validate booking by token
-- Return a simple HTML page (inline in Lambda response) with:
-  - Booking details shown at top
-  - Date picker input (type=date, min=today)
-  - Time slot dropdown: 10:00, 11:00, 13:00, 14:00, 15:00, 16:00
-  - Submit button posting to POST /reschedule
-  - Styled simply — cream background, readable, mobile friendly
-
-#### POST /reschedule (form submission from above page)
-
-- Parse token, new_date, new_time_slot from form body
-- Validate token, validate new slot not already booked
-- Update DynamoDB: status → RESCHEDULED, suggested_date, suggested_time_slot
-- Generate new customer_token (UUID) for customer response links
-- Send customer email:
-  - "Beste [naam], helaas zijn wij op [originele datum] om [originele tijdstip] niet beschikbaar."
-  - "Wij stellen voor: [nieuwe datum] om [nieuwe tijdstip]."
-  - Two buttons:
-    - Accepteren: GET /respond?token=CUSTOMER_TOKEN&action=accept
-    - Afwijzen: GET /respond?token=CUSTOMER_TOKEN&action=reject
-- Send de eigenaar email: "Je hebt een nieuw tijdstip voorgesteld aan [naam]: [nieuwe datum] om [nieuwe tijdstip]."
-- Return HTML page: "Nieuw tijdstip voorgesteld. De klant ontvangt een e-mail."
-
-#### GET /respond?token=CUSTOMER_TOKEN&action=accept|reject
-
-- Look up booking by token
-- Validate token, not expired, not used
-
-If action=accept:
-- Update DynamoDB status → CONFIRMED
-- Customer gets confirmation email with .ics for the NEW suggested date/time
-- De eigenaar ontvangt email: "[naam] heeft het nieuwe tijdstip geaccepteerd: [nieuwe datum] om [nieuwe tijdstip]." + .ics
-- Return HTML: "Bevestigd! U ontvangt een bevestiging per e-mail."
-
-If action=reject:
-- Update DynamoDB status → CANCELLED
-- Customer gets email: "Helaas. Neem contact op met ons via [phone] of [email] om een passend tijdstip te vinden."
-- De eigenaar ontvangt email: "[naam] heeft het nieuwe tijdstip afgewezen."
-  Include: naam, email, telefoon, WhatsApp link: https://api.whatsapp.com/send?phone=[phone]
-- Return HTML: "Begrepen. Q-Atelier neemt contact met u op."
+In frontend/public/main.js, in the calendar and slot rendering logic:
+- Past dates (before today): grey out entirely, not clickable
+- Today's date: grey out any time slots that are in the past based on current time
+  e.g. if it's 15:00, slots 10:00, 11:00, 13:00, 14:00 should be greyed out
+- Use Amsterdam timezone (Europe/Amsterdam) for time comparisons
 
 ---
 
-### Task 4 — Add new API Gateway routes
+### Task 3 — Fix: email bug on reschedule accept
 
-In modules/api/main.tf add:
-- GET /action
-- GET /reschedule
-- POST /reschedule
-- GET /respond
-
-All routed to the same Lambda function. Add OPTIONS methods with CORS for POST /reschedule.
-Run terraform apply after updating.
+In lambda/booking/index.js, in the GET /respond?action=accept handler:
+Currently de eigenaar gets a copy of the customer confirmation email.
+Fix: de eigenaar should get a simple notification email:
+Subject: "[naam] heeft uw voorgestelde datum geaccepteerd"
+Body: "De klant heeft uw voorgestelde datum geaccepteerd: [suggested_date dd/mm/yyyy] om [suggested_time_slot] voor [service]. De klant ontvangt een bevestigingsmail met .ics bijlage."
+Attach .ics for the confirmed new date to this email.
 
 ---
 
-### Task 5 — Update frontend success message
+### Task 4 — Update availability slots
 
-In frontend/public/main.js, change the success message after booking from:
-"Bedankt! Check je e-mail voor de bevestiging."
-to:
-"Bedankt voor uw aanvraag! Wij bevestigen uw afspraak zo snel mogelijk per e-mail."
+In lambda/booking/index.js, replace the ALLOWED_SLOTS and day logic with:
+- Maandag (1): 12:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Dinsdag (2): 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Woensdag (3): GESLOTEN — no slots
+- Donderdag (4): 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Vrijdag (5): 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Zaterdag (6): 12:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Zondag (0): GESLOTEN — no slots
 
-Redeploy frontend to S3 and invalidate CloudFront cache.
+Also update the GET /slots handler to return the correct slots per day of week.
+Also update the opening hours in frontend/public/index.html contact section:
+Ma 12:00–18:00 · Di 10:00–18:00 · Wo gesloten · Do 10:00–18:00 · Vr 10:00–18:00 · Za 12:00–18:00 · Zo gesloten
 
 ---
 
-### Task 6 — Package and deploy Lambda
+### Task 5 — Contact section: icons
+
+In frontend/public/index.html and style.css:
+- Add WhatsApp icon before the WhatsApp link — use SVG inline icon (green #25D366)
+- Add Instagram icon before the Instagram link — use SVG inline icon
+- Add Google Maps icon before the address, linking to:
+  https://maps.google.com/?q=Laan+van+Vollenhove+159,+3706+CD+Zeist
+- All icons should be 20x20px, vertically aligned with text
+
+---
+
+### Task 6 — Design: damore.nl inspired color palette
+
+Redesign the color palette in frontend/public/style.css to be more romantic and warm.
+Reference: https://damore.nl/damore-arnhem/ — light pink, white, blush, soft beige.
+
+New palette:
+- Background: #FDFAF7 (warm white)
+- Primary accent: #D4A5A5 (soft blush pink)
+- Secondary accent: #C68B8B (deeper rose)
+- Text: #3D2B2B (dark warm brown)
+- Muted text: #8B6B6B (warm grey-brown)
+- Card background: #FBF5F5 (blush white)
+- Border: #E8D5D5 (light pink border)
+- Button background: #C68B8B
+- Button hover: #B57A7A
+- Hero background: #F9F0F0
+
+Update all CSS variables and color references throughout style.css.
+Keep the same layout and structure — only colors change.
+
+---
+
+### Task 7 — Add Diensten subpage
+
+Create frontend/public/diensten.html with:
+- Same header and footer as index.html
+- Full pricing tables from TASKS.md (all categories)
+- Elegant layout matching the main site design
+- Intro text: "Bij Q-atelier verzorgen wij vakkundig maatwerk en aanpassingen voor bruidsjurken, galajurken, dagelijkse kleding en woningtextiel. Hieronder vindt u een overzicht van onze tarieven."
+- Note at bottom: "Alle genoemde prijzen zijn vanaf-prijzen. De uiteindelijke prijs kan variëren afhankelijk van de complexiteit van de werkzaamheden. Neem contact op voor een exacte prijsopgave."
+- Link back to home and to afspraak section
+
+---
+
+### Task 8 — Add Over ons subpage
+
+Create frontend/public/over-ons.html with:
+- Same header and footer as index.html
+- Brand story in Dutch using "wij/ons" — no personal names
+- Sections: Wie zijn wij, Onze werkwijze, Waarom Q-atelier
+- Placeholder section for client reviews (empty for now, styled nicely)
+- Appointment info: "Een eerste afspraak voor bruidsjurken duurt gemiddeld anderhalf uur. Bij overige kleding is de duur afhankelijk van de werkzaamheden."
+- Link to booking section on index.html
+
+---
+
+### Task 9 — Update navigation links
+
+In frontend/public/index.html:
+- "Diensten" nav link → href="diensten.html"
+- "Over ons" nav link → href="over-ons.html"
+- Update mobile nav as well
+
+---
+
+### Task 10 — Deploy everything
+
+Sync frontend to S3:
 ```bash
-cd lambda/booking
-npm install uuid
-cd ../..
+aws s3 sync frontend/public/ s3://q-atelier-site --delete \
+  --cache-control "max-age=31536000" --exclude "*.html"
+aws s3 sync frontend/public/ s3://q-atelier-site --delete \
+  --cache-control "no-cache" --include "*.html"
+```
+
+Invalidate CloudFront:
+```bash
+aws cloudfront create-invalidation \
+  --distribution-id E2LJC4OK76HPZO \
+  --paths "/*"
+```
+
+Redeploy Lambda:
+```bash
+cd lambda/booking && npm install && cd ../..
 Compress-Archive -Path "lambda/booking/*" -DestinationPath "lambda-booking.zip" -Force
 aws lambda update-function-code --function-name q-atelier-booking --zip-file fileb://lambda-booking.zip --region eu-west-1
 ```
 
 ---
 
-### Task 7 — Update BUILD_LOG.md
+### Task 11 — Update TASKS.md and commit
 
-Document Phase 3 implementation:
-- Manual booking flow: PENDING → ACCEPT/REJECT/RESCHEDULE
-- Token-based secure action links (UUID, 7 day expiry)
-- New endpoints: GET /action, GET /reschedule, POST /reschedule, GET /respond
-- DynamoDB token-index GSI added
-- Frontend success message updated
-
----
-
-### Task 8 — Commit everything
+Mark all completed tasks as [x] in TASKS.md.
+Update BUILD_LOG.md with today's changes.
 ```bash
 git add .
-git commit -m "feat: Phase 3 manual booking confirmation flow"
+git commit -m "feat: branding, redesign, subpages, availability, icons, bug fixes"
 git push origin main
 ```
