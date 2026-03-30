@@ -27,6 +27,12 @@ const HTML_HEADERS = {
   'Access-Control-Allow-Origin': '*',
 };
 
+// Convert "2026-03-31" to "31/03/2026"
+function formatDate(dateStr) {
+  const [y, m, d] = dateStr.split('-');
+  return `${d}/${m}/${y}`;
+}
+
 exports.handler = async (event) => {
   const method = event.httpMethod;
   const path = event.resource;
@@ -44,7 +50,7 @@ exports.handler = async (event) => {
     if (method === 'GET' && path === '/respond') return await handleRespond(event);
     return { statusCode: 404, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Not found' }) };
   } catch (err) {
-    console.error(err);
+    console.error('Handler error:', err);
     return { statusCode: 500, headers: JSON_HEADERS, body: JSON.stringify({ error: 'Internal error' }) };
   }
 };
@@ -169,8 +175,9 @@ async function createBooking(event) {
         expires_at: { N: String(expiresAt) },
         created_at: { S: new Date().toISOString() },
       },
-      ConditionExpression: 'attribute_not_exists(#d) AND attribute_not_exists(#ts)',
-      ExpressionAttributeNames: { '#d': 'date', '#ts': 'time_slot' },
+      ConditionExpression: 'attribute_not_exists(#d) OR #status = :cancelled',
+      ExpressionAttributeNames: { '#d': 'date', '#status': 'status' },
+      ExpressionAttributeValues: { ':cancelled': { S: 'CANCELLED' } },
     }));
   } catch (err) {
     if (err.name === 'ConditionalCheckFailedException') {
@@ -178,6 +185,8 @@ async function createBooking(event) {
     }
     throw err;
   }
+
+  const fd = formatDate(date);
 
   // Email to Sibel with action buttons
   const acceptUrl = `${API_BASE}/action?token=${token}&action=accept`;
@@ -192,7 +201,7 @@ async function createBooking(event) {
 <tr><td style="padding:6px 0;color:#8A7F7A;">Naam</td><td style="padding:6px 0;font-weight:600;">${name}</td></tr>
 <tr><td style="padding:6px 0;color:#8A7F7A;">E-mail</td><td style="padding:6px 0;">${email}</td></tr>
 <tr><td style="padding:6px 0;color:#8A7F7A;">Telefoon</td><td style="padding:6px 0;">${phone}</td></tr>
-<tr><td style="padding:6px 0;color:#8A7F7A;">Datum</td><td style="padding:6px 0;font-weight:600;">${date}</td></tr>
+<tr><td style="padding:6px 0;color:#8A7F7A;">Datum</td><td style="padding:6px 0;font-weight:600;">${fd}</td></tr>
 <tr><td style="padding:6px 0;color:#8A7F7A;">Tijdstip</td><td style="padding:6px 0;font-weight:600;">${time_slot}</td></tr>
 <tr><td style="padding:6px 0;color:#8A7F7A;">Service</td><td style="padding:6px 0;">${service}</td></tr>
 </table>
@@ -206,14 +215,14 @@ async function createBooking(event) {
   await sendHtmlEmail({
     to: SIBEL_EMAIL,
     from: FROM_EMAIL,
-    subject: `Nieuwe afspraak aanvraag — ${name} op ${date} om ${time_slot}`,
+    subject: `Nieuwe afspraak aanvraag — ${name} op ${fd} om ${time_slot}`,
     html: sibelHtml,
   });
 
   // SMS to Sibel
   await sns.send(new PublishCommand({
     TopicArn: SNS_ARN,
-    Message: `Nieuwe afspraak aanvraag: ${name} op ${date} om ${time_slot} voor ${service}. Check je mail.`,
+    Message: `Nieuwe afspraak aanvraag: ${name} op ${fd} om ${time_slot} voor ${service}. Check je mail.`,
   }));
 
   // Confirmation email to customer
@@ -223,7 +232,7 @@ async function createBooking(event) {
     subject: 'Uw afspraak aanvraag bij Q-Atelier is ontvangen',
     body:
       `Beste ${name},\r\n\r\n` +
-      `Wij hebben uw aanvraag ontvangen voor een afspraak op ${date} om ${time_slot} voor ${service}.\r\n\r\n` +
+      `Wij hebben uw aanvraag ontvangen voor een afspraak op ${fd} om ${time_slot} voor ${service}.\r\n\r\n` +
       `Sibel neemt zo snel mogelijk contact op ter bevestiging.\r\n\r\n` +
       `Met vriendelijke groet,\r\nQ-Atelier`,
   });
@@ -252,6 +261,7 @@ async function handleAction(event) {
   const date = item.date.S;
   const time_slot = item.time_slot.S;
   const service = item.service.S;
+  const fd = formatDate(date);
 
   if (action === 'accept') {
     await dynamo.send(new UpdateItemCommand({
@@ -263,13 +273,13 @@ async function handleAction(event) {
     }));
 
     const icsContent = generateICS({ name, email, date, time_slot, service });
-    await sendBookingEmail({ to: email, from: FROM_EMAIL, name, date, time_slot, service, icsContent });
+    await sendBookingEmail({ to: email, from: FROM_EMAIL, name, date: fd, time_slot, service, icsContent });
 
     await sendPlainEmail({
       to: SIBEL_EMAIL,
       from: FROM_EMAIL,
-      subject: `Afspraak bevestigd — ${name} op ${date} om ${time_slot}`,
-      body: `Je hebt de afspraak van ${name} op ${date} om ${time_slot} bevestigd.\r\n${name} ontvangt een bevestiging per e-mail.`,
+      subject: `Afspraak bevestigd — ${name} op ${fd} om ${time_slot}`,
+      body: `Je hebt de afspraak van ${name} op ${fd} om ${time_slot} bevestigd.\r\n${name} ontvangt een bevestiging per e-mail.`,
     });
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Afspraak bevestigd', `<p class="ok">${name} ontvangt een bevestiging per e-mail.</p>`) };
@@ -312,6 +322,8 @@ async function handleAction(event) {
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Afspraak afgewezen', '<p>De klant wordt op de hoogte gesteld.</p>') };
   }
+
+  return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige actie.</p>') };
 }
 
 // ── GET /reschedule?token=TOKEN ───────────────────────────────────
@@ -333,6 +345,7 @@ async function showRescheduleForm(event) {
   const date = item.date.S;
   const time_slot = item.time_slot.S;
   const service = item.service.S;
+  const fd = formatDate(date);
   const todayStr = new Date().toISOString().split('T')[0];
 
   const slotsOptions = ALLOWED_SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
@@ -353,7 +366,7 @@ button:hover{background:#2C2623;color:#FAF8F5}</style></head>
 <div class="info">
 <strong>Huidige aanvraag:</strong><br>
 Klant: ${name}<br>
-Datum: ${date}<br>
+Datum: ${fd}<br>
 Tijd: ${time_slot}<br>
 Service: ${service}
 </div>
@@ -372,7 +385,6 @@ Service: ${service}
 
 // ── POST /reschedule ──────────────────────────────────────────────
 async function handleReschedule(event) {
-  // Parse URL-encoded form body
   const params = new URLSearchParams(event.body || '');
   const token = params.get('token');
   const new_date = params.get('new_date');
@@ -408,12 +420,12 @@ async function handleReschedule(event) {
 
   const name = item.name.S;
   const email = item.email.S;
-  const phone = item.phone.S;
   const date = item.date.S;
   const time_slot = item.time_slot.S;
   const service = item.service.S;
+  const fd = formatDate(date);
+  const fnd = formatDate(new_date);
 
-  // Generate customer token for response links
   const customerToken = uuidv4();
   const tokenExpiresAt = Math.floor(Date.now() / 1000) + TOKEN_TTL_DAYS * 24 * 60 * 60;
 
@@ -439,8 +451,8 @@ async function handleReschedule(event) {
 <div style="max-width:500px;margin:0 auto;background:#ffffff;border:1px solid #E8DAD2;padding:30px;">
 <h2 style="margin:0 0 20px;font-size:20px;color:#2C2623;">Nieuw tijdstip voorgesteld</h2>
 <p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Beste ${name},</p>
-<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Helaas is Sibel op <strong>${date}</strong> om <strong>${time_slot}</strong> niet beschikbaar.</p>
-<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Sibel stelt voor: <strong>${new_date}</strong> om <strong>${new_time_slot}</strong>.</p>
+<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Helaas is Sibel op <strong>${fd}</strong> om <strong>${time_slot}</strong> niet beschikbaar.</p>
+<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Sibel stelt voor: <strong>${fnd}</strong> om <strong>${new_time_slot}</strong>.</p>
 <div style="text-align:center;margin:24px 0;">
 <a href="${acceptUrl}" style="${btnStyle}background:#3A7D44;margin:0 8px 10px;">Accepteren</a>
 <a href="${rejectUrl}" style="${btnStyle}background:#A63D40;margin:0 8px 10px;">Afwijzen</a>
@@ -459,7 +471,7 @@ async function handleReschedule(event) {
     to: SIBEL_EMAIL,
     from: FROM_EMAIL,
     subject: `Nieuw tijdstip voorgesteld aan ${name}`,
-    body: `Je hebt een nieuw tijdstip voorgesteld aan ${name}: ${new_date} om ${new_time_slot}.\r\nDe klant ontvangt een e-mail.`,
+    body: `Je hebt een nieuw tijdstip voorgesteld aan ${name}: ${fnd} om ${new_time_slot}.\r\nDe klant ontvangt een e-mail.`,
   });
 
   return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Nieuw tijdstip voorgesteld', '<p class="ok">De klant ontvangt een e-mail.</p>') };
@@ -475,12 +487,18 @@ async function handleRespond(event) {
   }
 
   // Find booking by customer_token (scan required — no GSI for customer_token)
-  const scanResult = await dynamo.send(new ScanCommand({
-    TableName: TABLE,
-    FilterExpression: 'customer_token = :ct',
-    ExpressionAttributeValues: { ':ct': { S: token } },
-  }));
-  let item = scanResult.Items && scanResult.Items.length > 0 ? scanResult.Items[0] : null;
+  let item = null;
+  try {
+    const scanResult = await dynamo.send(new ScanCommand({
+      TableName: TABLE,
+      FilterExpression: 'customer_token = :ct',
+      ExpressionAttributeValues: { ':ct': { S: token } },
+    }));
+    item = scanResult.Items && scanResult.Items.length > 0 ? scanResult.Items[0] : null;
+  } catch (scanErr) {
+    console.error('Scan error in /respond:', scanErr);
+    return { statusCode: 500, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Er ging iets mis. Probeer het later opnieuw.</p>') };
+  }
 
   if (!item) {
     return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Token niet gevonden.</p>') };
@@ -504,6 +522,7 @@ async function handleRespond(event) {
   const service = item.service.S;
   const suggestedDate = item.suggested_date?.S || date;
   const suggestedTime = item.suggested_time_slot?.S || time_slot;
+  const fsd = formatDate(suggestedDate);
 
   if (action === 'accept') {
     await dynamo.send(new UpdateItemCommand({
@@ -520,7 +539,7 @@ async function handleRespond(event) {
       to: email,
       from: FROM_EMAIL,
       name,
-      date: suggestedDate,
+      date: fsd,
       time_slot: suggestedTime,
       service,
       icsContent,
@@ -530,7 +549,7 @@ async function handleRespond(event) {
       to: SIBEL_EMAIL,
       from: FROM_EMAIL,
       subject: `${name} heeft het nieuwe tijdstip geaccepteerd`,
-      body: `${name} heeft het nieuwe tijdstip geaccepteerd: ${suggestedDate} om ${suggestedTime}.`,
+      body: `${name} heeft het nieuwe tijdstip geaccepteerd: ${fsd} om ${suggestedTime}.`,
     });
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Bevestigd!', '<p class="ok">U ontvangt een bevestiging per e-mail.</p>') };
@@ -571,4 +590,6 @@ async function handleRespond(event) {
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Sibel neemt contact met u op.</p>') };
   }
+
+  return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige actie.</p>') };
 }
