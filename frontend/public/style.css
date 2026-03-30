@@ -740,6 +740,18 @@ footer {
   width: 100%;
   border-collapse: collapse;
   margin-bottom: 2rem;
+  table-layout: fixed;
+}
+.price-table th:first-child,
+.price-table td:first-child {
+  width: 75%;
+  text-align: left;
+}
+.price-table th:last-child,
+.price-table td:last-child {
+  width: 25%;
+  text-align: right;
+  white-space: nowrap;
 }
 .price-table th {
   font-family: 'Jost', sans-serif;
@@ -750,15 +762,6 @@ footer {
   color: var(--text-muted);
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
-}
-.price-table th:first-child,
-.price-table td:first-child {
-  text-align: left;
-}
-.price-table th:last-child,
-.price-table td:last-child {
-  text-align: right;
-  white-space: nowrap;
 }
 .price-table td {
   padding: 0.7rem 0;
