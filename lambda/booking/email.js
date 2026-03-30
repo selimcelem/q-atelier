@@ -15,7 +15,7 @@ async function sendBookingEmail({ to, from, bcc, name, date, time_slot, service,
     `Tijd: ${time_slot}\r\n` +
     `Service: ${service}\r\n\r\n` +
     `Adres: Laan van Vollenhove 159, 3706 CD Zeist.\r\n\r\n` +
-    `Tot dan!\r\n— Sibel, Q-Atelier`;
+    `Tot dan!\r\n— Q-Atelier`;
 
   const boundary = `----=_Part_${Date.now()}`;
   const icsBase64 = Buffer.from(icsContent).toString('base64');

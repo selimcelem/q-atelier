@@ -34,7 +34,7 @@ for the developer (AWS SAA-C03 candidate, career switching from BIM to Cloud Eng
 ## Business details
 
 Name: Q-Atelier
-Owner: Sibel Celem
+Owner: de eigenaar (naam niet publiek)
 Address: Laan van Vollenhove 159, 3706 CD Zeist, Nederland
 Phone: +31 6 85 56 95 51
 Email: q.atelier89@gmail.com
@@ -93,14 +93,14 @@ In lambda/booking/index.js, change POST /booking so that:
 - Booking is written to DynamoDB with status: PENDING (not auto-confirmed)
 - A unique token (UUID) is generated and stored with the booking
 - token_expires_at is set to 7 days from now (Unix timestamp)
-- Sibel receives an email with:
+- De eigenaar ontvangt een email met:
   - Customer details: naam, email, telefoon, datum, tijdstip, service
   - Three action links (use the API Gateway endpoint as base URL):
     - Accepteren: GET /action?token=TOKEN&action=accept
     - Nieuw tijdstip voorstellen: GET /reschedule?token=TOKEN
     - Afwijzen: GET /action?token=TOKEN&action=reject
   - Subject: "Nieuwe afspraak aanvraag — [naam] op [datum] om [tijdstip]"
-- Sibel receives SMS: "Nieuwe afspraak aanvraag: [naam] op [datum] om [tijdstip] voor [service]. Check je mail."
+- De eigenaar ontvangt SMS: "Nieuwe afspraak aanvraag: [naam] op [datum] om [tijdstip] voor [service]. Check je mail."
 - Customer receives email:
   - Subject: "Uw afspraak aanvraag bij Q-Atelier is ontvangen"
   - Body: "Beste [naam], wij hebben uw aanvraag ontvangen en nemen zo snel mogelijk contact op ter bevestiging."
@@ -121,16 +121,16 @@ Add these routes to lambda/booking/index.js:
 If action=accept:
 - Update DynamoDB status → CONFIRMED
 - Send customer confirmation email with .ics attachment (same as original confirmation)
-- Send Sibel email: "Je hebt de afspraak van [naam] op [datum] om [tijdstip] bevestigd."
+- Send de eigenaar email: "Je hebt de afspraak van [naam] op [datum] om [tijdstip] bevestigd."
 - Return HTML page: "Afspraak bevestigd. [naam] ontvangt een bevestiging per e-mail."
 
 If action=reject:
 - Update DynamoDB status → CANCELLED
 - Send customer email:
   "Beste [naam], helaas kunnen wij uw afspraak op dit moment niet bevestigen.
-  Sibel neemt zo snel mogelijk contact met u op."
-  Include customer phone number and email in Sibel's copy.
-- Send Sibel email with customer naam, email, telefoon, WhatsApp link
+  De eigenaar neemt zo snel mogelijk contact met u op."
+  Include customer phone number and email in de eigenaar's copy.
+- Send de eigenaar email with customer naam, email, telefoon, WhatsApp link
 - Return HTML page: "Afspraak afgewezen. De klant wordt op de hoogte gesteld."
 
 #### GET /reschedule?token=TOKEN
@@ -150,12 +150,12 @@ If action=reject:
 - Update DynamoDB: status → RESCHEDULED, suggested_date, suggested_time_slot
 - Generate new customer_token (UUID) for customer response links
 - Send customer email:
-  - "Beste [naam], helaas is Sibel op [originele datum] om [originele tijdstip] niet beschikbaar."
-  - "Sibel stelt voor: [nieuwe datum] om [nieuwe tijdstip]."
+  - "Beste [naam], helaas zijn wij op [originele datum] om [originele tijdstip] niet beschikbaar."
+  - "Wij stellen voor: [nieuwe datum] om [nieuwe tijdstip]."
   - Two buttons:
     - Accepteren: GET /respond?token=CUSTOMER_TOKEN&action=accept
     - Afwijzen: GET /respond?token=CUSTOMER_TOKEN&action=reject
-- Send Sibel email: "Je hebt een nieuw tijdstip voorgesteld aan [naam]: [nieuwe datum] om [nieuwe tijdstip]."
+- Send de eigenaar email: "Je hebt een nieuw tijdstip voorgesteld aan [naam]: [nieuwe datum] om [nieuwe tijdstip]."
 - Return HTML page: "Nieuw tijdstip voorgesteld. De klant ontvangt een e-mail."
 
 #### GET /respond?token=CUSTOMER_TOKEN&action=accept|reject
@@ -166,15 +166,15 @@ If action=reject:
 If action=accept:
 - Update DynamoDB status → CONFIRMED
 - Customer gets confirmation email with .ics for the NEW suggested date/time
-- Sibel gets email: "[naam] heeft het nieuwe tijdstip geaccepteerd: [nieuwe datum] om [nieuwe tijdstip]." + .ics
+- De eigenaar ontvangt email: "[naam] heeft het nieuwe tijdstip geaccepteerd: [nieuwe datum] om [nieuwe tijdstip]." + .ics
 - Return HTML: "Bevestigd! U ontvangt een bevestiging per e-mail."
 
 If action=reject:
 - Update DynamoDB status → CANCELLED
-- Customer gets email: "Helaas. Neem contact op met Sibel via [phone] of [email] om een passend tijdstip te vinden."
-- Sibel gets email: "[naam] heeft het nieuwe tijdstip afgewezen."
+- Customer gets email: "Helaas. Neem contact op met ons via [phone] of [email] om een passend tijdstip te vinden."
+- De eigenaar ontvangt email: "[naam] heeft het nieuwe tijdstip afgewezen."
   Include: naam, email, telefoon, WhatsApp link: https://api.whatsapp.com/send?phone=[phone]
-- Return HTML: "Begrepen. Sibel neemt contact met u op."
+- Return HTML: "Begrepen. Q-Atelier neemt contact met u op."
 
 ---
 
@@ -196,7 +196,7 @@ Run terraform apply after updating.
 In frontend/public/main.js, change the success message after booking from:
 "Bedankt! Check je e-mail voor de bevestiging."
 to:
-"Bedankt voor uw aanvraag! Sibel bevestigt uw afspraak zo snel mogelijk per e-mail."
+"Bedankt voor uw aanvraag! Wij bevestigen uw afspraak zo snel mogelijk per e-mail."
 
 Redeploy frontend to S3 and invalidate CloudFront cache.
 

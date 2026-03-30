@@ -233,7 +233,7 @@ async function createBooking(event) {
     body:
       `Beste ${name},\r\n\r\n` +
       `Wij hebben uw aanvraag ontvangen voor een afspraak op ${fd} om ${time_slot} voor ${service}.\r\n\r\n` +
-      `Sibel neemt zo snel mogelijk contact op ter bevestiging.\r\n\r\n` +
+      `Wij nemen zo snel mogelijk contact op ter bevestiging.\r\n\r\n` +
       `Met vriendelijke groet,\r\nQ-Atelier`,
   });
 
@@ -305,7 +305,7 @@ async function handleAction(event) {
       body:
         `Beste ${name},\r\n\r\n` +
         `Helaas kunnen wij uw afspraak op dit moment niet bevestigen.\r\n` +
-        `Sibel neemt zo snel mogelijk contact met u op.\r\n\r\n` +
+        `Wij nemen zo snel mogelijk contact met u op.\r\n\r\n` +
         `Met vriendelijke groet,\r\nQ-Atelier`,
     });
 
@@ -455,8 +455,8 @@ async function handleReschedule(event) {
 <div style="max-width:500px;margin:0 auto;background:#ffffff;border:1px solid #E8DAD2;padding:30px;">
 <h2 style="margin:0 0 20px;font-size:20px;color:#2C2623;">Nieuw tijdstip voorgesteld</h2>
 <p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Beste ${name},</p>
-<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Helaas is Sibel op <strong>${fd}</strong> om <strong>${time_slot}</strong> niet beschikbaar.</p>
-<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Sibel stelt voor: <strong>${fnd}</strong> om <strong>${new_time_slot}</strong>.</p>
+<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Helaas zijn wij op <strong>${fd}</strong> om <strong>${time_slot}</strong> niet beschikbaar.</p>
+<p style="font-size:15px;line-height:1.6;color:#5A4F4A;">Wij stellen voor: <strong>${fnd}</strong> om <strong>${new_time_slot}</strong>.</p>
 <div style="text-align:center;margin:24px 0;">
 <a href="${acceptUrl}" style="${btnStyle}background:#3A7D44;margin:0 8px 10px;">Accepteren</a>
 <a href="${rejectUrl}" style="${btnStyle}background:#A63D40;margin:0 8px 10px;">Afwijzen</a>
@@ -598,7 +598,7 @@ async function handleRespond(event) {
       subject: 'Uw afspraak bij Q-Atelier',
       body:
         `Beste ${name},\r\n\r\n` +
-        `Helaas. Neem contact op met Sibel via +31 6 85 56 95 51 of q.atelier89@gmail.com om een passend tijdstip te vinden.\r\n\r\n` +
+        `Helaas. Neem contact op met ons via +31 6 85 56 95 51 of q.atelier89@gmail.com om een passend tijdstip te vinden.\r\n\r\n` +
         `Met vriendelijke groet,\r\nQ-Atelier`,
     });
 
@@ -616,7 +616,7 @@ async function handleRespond(event) {
         `WhatsApp: ${whatsappUrl}`,
     });
 
-    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Sibel neemt contact met u op.</p>') };
+    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Q-Atelier neemt contact met u op.</p>') };
   }
 
   return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige actie.</p>') };

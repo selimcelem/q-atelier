@@ -59,19 +59,19 @@ Running log of everything done, what worked, what failed, and why.
 - Failed at: Terraform Apply
 - Reason: CloudFront distribution failed with `InvalidViewerCertificate`
 - Root cause: ACM certificate exists in `us-east-1` but DNS validation CNAMEs have not been added to the domain registrar yet. CloudFront refuses to use an unvalidated cert.
-- Status: **BLOCKED — waiting on Sibel's registrar info**
+- Status: **BLOCKED — waiting on de eigenaar's registrar info**
 
 ---
 
-## Blocked — waiting on Sibel
+## Blocked — waiting on de eigenaar
 
 Cannot proceed with CloudFront deployment until:
-- [ ] Sibel confirms her domain registrar (TransIP / Hostnet / Mijndomein / other)
-- [ ] She provides login credentials
+- [ ] De eigenaar confirms the domain registrar (TransIP / Hostnet / Mijndomein / other)
+- [ ] Login credentials provided
 - [ ] We add the ACM DNS validation CNAME records to her domain
 - [ ] Cert shows "Issued" in AWS Certificate Manager (us-east-1)
 
-Checklist sent to Sibel via WhatsApp as interactive HTML form (`sibel_checklist.html`).
+Checklist sent to de eigenaar via WhatsApp as interactive HTML form (`sibel_checklist.html`).
 
 ---
 
@@ -85,7 +85,7 @@ Despite the CloudFront failure, earlier resources were created successfully:
 - Lambda function: `q-atelier-booking` (stub — not yet implemented)
 - SES email identities: verification emails sent to `q.atelier89@gmail.com`
 - SNS topic: `q-atelier-booking-alerts`
-- SNS SMS subscription: Sibel's phone number
+- SNS SMS subscription: de eigenaar's phone number
 - IAM role: `q-atelier-lambda-role` with least-privilege policy
 - ACM certificate: created in `us-east-1`, **pending DNS validation**
 
@@ -99,8 +99,8 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - Implemented `GET /slots` — queries DynamoDB `month-index` GSI, generates full month availability map (Mon–Sat, 6 slots/day), marks booked vs available
 - Implemented `POST /booking` — validates all fields, checks date not in past, not Sunday, valid slot; conditional DynamoDB write prevents double-booking (409 on conflict)
 - Created `lambda/booking/ics.js` — generates iCalendar (.ics) with ORGANIZER, ATTENDEE, location, 60-min duration
-- Created `lambda/booking/email.js` — sends raw MIME email via SES with .ics attachment (text/calendar; method=REQUEST), BCC to Sibel
-- SNS SMS notification to Sibel on each booking: "Nieuwe afspraak: [name] op [date] om [time_slot] voor [service]"
+- Created `lambda/booking/email.js` — sends raw MIME email via SES with .ics attachment (text/calendar; method=REQUEST), BCC to de eigenaar
+- SNS SMS notification to de eigenaar on each booking: "Nieuwe afspraak: [name] op [date] om [time_slot] voor [service]"
 - **Deployed** Lambda via `aws lambda update-function-code`
 
 ### Frontend
@@ -114,7 +114,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - [x] GET /slots returns monthly availability from DynamoDB
 - [x] POST /booking creates bookings with double-booking prevention
 - [x] SES sends confirmation email with .ics calendar invite
-- [x] SNS sends SMS alert to Sibel
+- [x] SNS sends SMS alert to de eigenaar
 - [x] Frontend calendar loads slots and allows booking
 - [x] Frontend deployed to S3
 
@@ -123,7 +123,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 ## Phase 3 — SSL, CloudFront & Redesign (2026-03-29)
 
 ### ACM certificate validated
-- Sibel's domain registrar is Vimexx
+- De eigenaar's domain registrar is Vimexx
 - Added ACM DNS validation CNAME records to Vimexx DNS panel
 - Certificate status changed to "Issued" in AWS Certificate Manager (us-east-1)
 
@@ -157,7 +157,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ### DNS status
 - CloudFront test URL: `dyshhxdimbjli.cloudfront.net` — live and serving the new design
-- JouwWeb still live on `q-atelier.nl` — DNS cutover NOT done yet, waiting for Sibel approval
+- JouwWeb still live on `q-atelier.nl` — DNS cutover NOT done yet, waiting for de eigenaar approval
 
 ---
 
@@ -165,14 +165,14 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ### Booking flow change
 - Bookings now created with status `PENDING` instead of auto-confirmed
-- Sibel receives email with customer details + 3 action links (accept/reschedule/reject)
-- Sibel receives SMS notification to check email
+- De eigenaar ontvangt email with customer details + 3 action links (accept/reschedule/reject)
+- De eigenaar ontvangt SMS notification to check email
 - Customer receives "aanvraag ontvangen" email, no .ics yet
 
 ### New Lambda endpoints
-- `GET /action?token=TOKEN&action=accept|reject` — Sibel accepts or rejects from email
-- `GET /reschedule?token=TOKEN` — Sibel sees date/time picker form
-- `POST /reschedule` — Sibel submits new proposed date/time
+- `GET /action?token=TOKEN&action=accept|reject` — de eigenaar accepts or rejects from email
+- `GET /reschedule?token=TOKEN` — de eigenaar sees date/time picker form
+- `POST /reschedule` — de eigenaar submits new proposed date/time
 - `GET /respond?token=CUSTOMER_TOKEN&action=accept|reject` — Customer responds to reschedule proposal
 
 ### Token-based security
@@ -191,20 +191,20 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - All routes proxied to same Lambda function
 
 ### Frontend update
-- Success message changed to: "Bedankt voor uw aanvraag! Sibel bevestigt uw afspraak zo snel mogelijk per e-mail."
+- Success message changed to: "Bedankt voor uw aanvraag! Wij bevestigen uw afspraak zo snel mogelijk per e-mail."
 
 ### Dependencies
 - Added `uuid` package to Lambda for token generation
 
 ### Bug fixes (2026-03-30)
 - Fixed API Gateway "Missing Authentication Token" — added `triggers` block to force new deployment
-- Sibel notification email now uses HTML with styled action buttons (green/blue/red)
-- Removed BCC to Sibel on customer confirmation emails (was causing duplicate emails)
+- De eigenaar notification email now uses HTML with styled action buttons (green/blue/red)
+- Removed BCC to de eigenaar on customer confirmation emails (was causing duplicate emails)
 - Pure CSS hamburger menu for mobile nav (replaced broken JS toggle)
 - Fixed POST /booking: cancelled slots now rebookable (`attribute_not_exists OR status=CANCELLED`)
 - Fixed /respond endpoint: added `dynamodb:Scan` to Lambda IAM policy
 - Fixed /respond accept: creates new DynamoDB item at suggested date/time (partition key immutable)
-- Sibel now receives .ics attachment on accept (both direct accept and reschedule accept)
+- De eigenaar now receives .ics attachment on accept (both direct accept and reschedule accept)
 - All email dates now use dd/mm/yyyy format
 - Lambda deploy added to GitHub Actions CI/CD pipeline
 

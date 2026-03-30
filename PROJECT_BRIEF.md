@@ -1,7 +1,7 @@
 # Q-Atelier — Project Brief
 
 **Owner:** Selim Celem  
-**Client:** Sibel Celem — q-atelier.nl  
+**Client:** Q-Atelier — q-atelier.nl 
 **Stack:** AWS · Terraform · Claude Code  
 **Goal:** Replace a €15/month website builder with a production-grade, nearly-free AWS static site + booking system  
 
@@ -9,7 +9,7 @@
 
 ## Background
 
-Sibel runs a bridal dress tailoring atelier in Zeist, Netherlands. Her current site (JWWB builder) costs €15/month and routes every CTA to a WhatsApp link. There is no booking flow, no Google presence, and no customer confirmation system. The site is invisible in search results.
+De eigenaar runt een bridal dress tailoring atelier in Zeist, Netherlands. The current site (JWWB builder) costs €15/month and routes every CTA to a WhatsApp link. There is no booking flow, no Google presence, and no customer confirmation system. The site is invisible in search results.
 
 This project replaces it with a fast, professional static site with a self-service booking calendar, automated email confirmations, and proper SEO foundations — all for ~€0/month operational cost.
 
@@ -24,12 +24,12 @@ This is also a portfolio project for Selim (career switcher: BIM Engineering →
 | P0 | Static site live on q-atelier.nl via S3 + CloudFront + ACM |
 | P0 | Cancel the €15/month JWWB subscription |
 | P1 | Booking calendar with available/unavailable slots |
-| P1 | SES email confirmation to customer + Sibel on booking |
+| P1 | SES email confirmation to customer + de eigenaar on booking |
 | P1 | `.ics` calendar attachment (works on iPhone + Android + Gmail) |
-| P2 | SNS SMS ping to Sibel's phone on new booking |
+| P2 | SNS SMS ping to de eigenaar's phone on new booking |
 | P2 | Google Business Profile setup + structured data (JSON-LD) |
 | P2 | Google Search Console + sitemap submission |
-| P3 | Admin panel for Sibel to block/open dates |
+| P3 | Admin panel for de eigenaar to block/open dates |
 | P3 | Portfolio gallery with her own photos |
 
 ---
@@ -53,16 +53,16 @@ S3 (static site)   API Gateway
               ┌───────┴────────┐
               ▼                ▼
           DynamoDB           SES
-      (booked slots)   (sends .ics to customer + Sibel)
+      (booked slots)   (sends .ics to customer + de eigenaar)
                              │
                              ▼
                            SNS
-                    (SMS to Sibel's phone)
+                    (SMS to de eigenaar's phone)
 ```
 
 **Domain:** q-atelier.nl is kept on existing registrar (TransIP/Mijndomein/etc). DNS A/CNAME records are pointed at CloudFront. Route 53 is NOT used — it adds €0.50/month with no SEO benefit.
 
-**Email:** Sibel keeps q.atelier89@gmail.com. SES is configured to send FROM a verified identity. Optionally later: info@q-atelier.nl via SES.
+**Email:** De eigenaar keeps q.atelier89@gmail.com. SES is configured to send FROM a verified identity. Optionally later: info@q-atelier.nl via SES.
 
 ---
 
@@ -149,31 +149,31 @@ Site content is Dutch only. All copy is written for a local Dutch audience (Zeis
 - Deploy API module (API Gateway + Lambda + DynamoDB)
 - Implement GET /slots and POST /booking endpoints
 - Wire up SES for customer confirmation with .ics attachment
-- Wire up SNS for Sibel SMS notification
+- Wire up SNS for de eigenaar SMS notification
 
 ### Phase 3 — SEO & Polish
 - Add JSON-LD structured data (LocalBusiness schema)
 - Add sitemap.xml + robots.txt
 - Submit to Google Search Console
 - Set up Google Business Profile
-- Add portfolio gallery with Sibel's photos
+- Add portfolio gallery with de eigenaar's photos
 - Proper meta tags on all pages
 
 ### Phase 4 — Admin (optional)
-- Simple password-protected admin page for Sibel to block dates
+- Simple password-protected admin page for de eigenaar to block dates
 - Lambda endpoint for availability management
 
 ---
 
-## What Sibel Needs to Provide
+## What De Eigenaar Needs to Provide
 
-- [ ] Login to her domain registrar (to update DNS records)
-- [ ] Her best work photos (high resolution)
+- [ ] Login to the domain registrar (to update DNS records)
+- [ ] Best work photos (high resolution)
 - [ ] Available days/hours (to configure default slots)
 - [ ] Appointment duration (e.g. 60 minutes)
 - [ ] Preferred language for customer emails (Dutch)
-- [ ] Whether she wants manual or auto-confirm bookings
-- [ ] AWS account access (Selim sets this up with her)
+- [ ] Whether manual or auto-confirm bookings are preferred
+- [ ] AWS account access (Selim sets this up)
 
 ---
 
