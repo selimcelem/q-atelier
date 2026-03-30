@@ -15,7 +15,7 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ---
 
 ## Branding
-- [x] Rename "Q — Atelier" (with dashes/spaces) to "Q-atelier" everywhere in frontend
+- [x] Rename "Q — Atelier" (with dashes/spaces) to "Q-Atelier" everywhere in frontend
 
 ---
 
