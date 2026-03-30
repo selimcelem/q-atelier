@@ -275,11 +275,15 @@ async function handleAction(event) {
     const icsContent = generateICS({ name, email, date, time_slot, service });
     await sendBookingEmail({ to: email, from: FROM_EMAIL, name, date: fd, time_slot, service, icsContent });
 
-    await sendPlainEmail({
+    const sibelIcs = generateICS({ name, email, date, time_slot, service });
+    await sendBookingEmail({
       to: SIBEL_EMAIL,
       from: FROM_EMAIL,
-      subject: `Afspraak bevestigd — ${name} op ${fd} om ${time_slot}`,
-      body: `Je hebt de afspraak van ${name} op ${fd} om ${time_slot} bevestigd.\r\n${name} ontvangt een bevestiging per e-mail.`,
+      name,
+      date: fd,
+      time_slot,
+      service,
+      icsContent: sibelIcs,
     });
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Afspraak bevestigd', `<p class="ok">${name} ontvangt een bevestiging per e-mail.</p>`) };
@@ -525,12 +529,32 @@ async function handleRespond(event) {
   const fsd = formatDate(suggestedDate);
 
   if (action === 'accept') {
+    // Mark original booking as historical record
     await dynamo.send(new UpdateItemCommand({
       TableName: TABLE,
       Key: { date: { S: date }, time_slot: { S: time_slot } },
       UpdateExpression: 'SET #s = :status',
       ExpressionAttributeNames: { '#s': 'status' },
-      ExpressionAttributeValues: { ':status': { S: 'CONFIRMED' } },
+      ExpressionAttributeValues: { ':status': { S: 'CANCELLED' } },
+    }));
+
+    // Create new confirmed booking at the suggested date/time
+    const newMonth = suggestedDate.substring(0, 7);
+    const newExpiresAt = Math.floor(Date.now() / 1000) + 365 * 24 * 60 * 60;
+    await dynamo.send(new PutItemCommand({
+      TableName: TABLE,
+      Item: {
+        date: { S: suggestedDate },
+        time_slot: { S: suggestedTime },
+        month: { S: newMonth },
+        name: { S: name },
+        email: { S: email },
+        phone: { S: phone },
+        service: { S: service },
+        status: { S: 'CONFIRMED' },
+        expires_at: { N: String(newExpiresAt) },
+        created_at: { S: new Date().toISOString() },
+      },
     }));
 
     const icsContent = generateICS({ name, email, date: suggestedDate, time_slot: suggestedTime, service });
@@ -545,11 +569,15 @@ async function handleRespond(event) {
       icsContent,
     });
 
-    await sendPlainEmail({
+    const sibelIcs = generateICS({ name, email, date: suggestedDate, time_slot: suggestedTime, service });
+    await sendBookingEmail({
       to: SIBEL_EMAIL,
       from: FROM_EMAIL,
-      subject: `${name} heeft het nieuwe tijdstip geaccepteerd`,
-      body: `${name} heeft het nieuwe tijdstip geaccepteerd: ${fsd} om ${suggestedTime}.`,
+      name,
+      date: fsd,
+      time_slot: suggestedTime,
+      service,
+      icsContent: sibelIcs,
     });
 
     return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Bevestigd!', '<p class="ok">U ontvangt een bevestiging per e-mail.</p>') };
