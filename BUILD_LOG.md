@@ -249,6 +249,20 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - Frontend synced to S3, CloudFront cache invalidated
 - Lambda redeployed with updated code
 
+### Follow-up fixes
+- Service dropdown updated: removed "Maatwerk op aanvraag", added "Bruidsjurken — vermaak", "Galajurken — vermaak", "Gordijnen inkorten"
+- "Bekijk onze diensten" CTA button added to Diensten section on homepage
+- "Meer over ons" CTA button added to Over ons section on homepage
+- Price table alignment fixed: PRIJS column header + values right-aligned
+
+### SNS SMS sandbox
+- Phone number verified in SNS sandbox
+- SMS quota increase requested
+- Sandbox exit support case submitted — awaiting AWS approval
+
+### SES production access
+- Support case replied to with additional info — awaiting AWS approval
+
 ---
 
 ## TODO — next sessions

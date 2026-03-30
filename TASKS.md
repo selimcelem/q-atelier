@@ -10,6 +10,7 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 - [x] Remove owner name from all repo files — use role references instead
 - [x] Make sure no full name appears in frontend, emails, or Terraform config
 - [ ] GitHub repo: check git history for name leaks (git grep)
+- [ ] Before making repo public: rewrite git history to remove owner name from old commit messages (git filter-branch or BFG Repo Cleaner)
 
 ---
 
@@ -66,15 +67,23 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ---
 
 ## Booking — SMS (SNS)
-- [ ] Fix SNS SMS — 21/21 messages failed in eu-west-1
-  - Investigate: sandbox opt-in required? Wrong phone format? Region issue?
-  - SMS content: "[naam] heeft een afspraak gemaakt op [datum]. Bekijk de afspraak op q.atelier89@gmail.com"
-  - Decision: fix or remove — DECIDED: fix it
+- [~] Fix SNS SMS — 21/21 messages failed in eu-west-1
+  - [x] Phone number verified in SNS sandbox
+  - [x] SMS quota increase requested
+  - [x] Sandbox exit support case submitted
+  - [ ] Awaiting AWS approval for sandbox exit
+
+---
+
+## SES — Production Access
+- [~] SES production access request
+  - [x] Support case replied to with additional info
+  - [ ] Awaiting AWS approval
 
 ---
 
 ## Infrastructure
-- [ ] SNS SMS: investigate and fix (see above)
+- [~] SNS SMS: sandbox exit pending (see above)
 
 ---
 
