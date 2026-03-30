@@ -11,8 +11,8 @@ Static site + booking system for q-atelier.nl, built on AWS with Terraform.
 | Lambda | `q-atelier-booking` (Node.js 20) | Deployed |
 | Database | DynamoDB `q-atelier-bookings` | Deployed |
 | Email | SES with .ics calendar attachment | Deployed |
-| SMS | SNS booking alerts | Deployed |
-| CDN | CloudFront + ACM SSL | Deployed (test URL: dyshhxdimbjli.cloudfront.net) |
+| SMS | SNS booking alerts | Deployed (sandbox exit pending AWS approval) |
+| CDN | CloudFront + ACM SSL | Deployed (test: dyshhxdimbjli.cloudfront.net — DNS cutover pending) |
 
 ## Architecture
 
@@ -40,24 +40,25 @@ Each date maps slot times to `"available"` or `"booked"`. Sundays excluded.
 }
 ```
 Returns 200 on success, 409 if slot taken, 400 on validation error.
-Sibel receives HTML email with accept/reschedule/reject buttons + SMS.
+De eigenaar ontvangt HTML email with accept/reschedule/reject buttons + SMS.
 
-**GET** `/action?token=TOKEN&action=accept|reject` — Sibel accepts or rejects a booking from email.
+**GET** `/action?token=TOKEN&action=accept|reject` — De eigenaar accepts or rejects a booking from email.
 
-**GET** `/reschedule?token=TOKEN` — Shows Sibel a date/time picker to propose a new slot.
+**GET** `/reschedule?token=TOKEN` — Shows de eigenaar a date/time picker to propose a new slot.
 
-**POST** `/reschedule` — Submits Sibel's proposed new date/time. Customer receives email with accept/reject buttons.
+**POST** `/reschedule` — Submits de eigenaar's proposed new date/time. Customer receives email with accept/reject buttons.
 
 **GET** `/respond?token=TOKEN&action=accept|reject` — Customer accepts or rejects the rescheduled time.
 
 ## Frontend
 
-Single-page vanilla HTML/CSS/JS site with:
+Vanilla HTML/CSS/JS site with:
 - Hero section with CTA
-- Three service cards (bruidsjurk vermaken, reparaties, maatwerk)
+- Four service categories (bruidsjurken vermaak, galajurken vermaak, dagelijkse kleding, gordijnen)
 - Interactive booking calendar with month navigation
 - Time slot picker and booking form
-- Contact section with address, phone, Instagram, WhatsApp
+- Contact section with address, phone, Instagram, WhatsApp + opening hours
+- Subpages: `diensten.html` (full pricing list) and `over-ons.html` (about page)
 - Responsive design, all text in Dutch
 
 ## Prerequisites
@@ -117,4 +118,4 @@ aws s3 sync frontend/public/ s3://q-atelier-site --delete \
 
 ## Cost
 
-Expected: ~€0/month (all services within AWS free tier for expected traffic).
+Expected: ~€1/month (SNS origination number) + €0 for all other services within AWS free tier.
