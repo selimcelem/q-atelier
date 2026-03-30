@@ -291,8 +291,10 @@ nav {
   display: flex;
   align-items: center;
   background-color: transparent;
-  padding: 0 0px;
+  padding: 0 4px;
   margin: 0;
+  position: relative;
+  z-index: 2;
 }
 
 .divider-rings svg {
