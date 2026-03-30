@@ -742,7 +742,6 @@ footer {
   margin-bottom: 2rem;
 }
 .price-table th {
-  text-align: left;
   font-family: 'Jost', sans-serif;
   font-size: 0.78rem;
   font-weight: 400;
@@ -752,14 +751,21 @@ footer {
   padding: 0.6rem 0;
   border-bottom: 1px solid var(--border);
 }
+.price-table th:first-child,
+.price-table td:first-child {
+  text-align: left;
+}
+.price-table th:last-child,
+.price-table td:last-child {
+  text-align: right;
+  white-space: nowrap;
+}
 .price-table td {
   padding: 0.7rem 0;
   border-bottom: 1px solid var(--border);
   font-size: 0.92rem;
 }
 .price-table td:last-child {
-  text-align: right;
-  white-space: nowrap;
   color: var(--text-light);
 }
 
