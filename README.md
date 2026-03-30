@@ -12,12 +12,12 @@ Static site + booking system for q-atelier.nl, built on AWS with Terraform.
 | Database | DynamoDB `q-atelier-bookings` | Deployed |
 | Email | SES with .ics calendar attachment | Deployed |
 | SMS | SNS booking alerts | Deployed |
-| CDN | CloudFront | Blocked (ACM DNS validation pending) |
+| CDN | CloudFront + ACM SSL | Deployed (test URL: dyshhxdimbjli.cloudfront.net) |
 
 ## Architecture
 
 ```
-Browser → (CloudFront) → S3 static site
+Browser → CloudFront → S3 static site
 Browser → API Gateway → Lambda → DynamoDB
                               → SES (email + .ics)
                               → SNS (SMS)
@@ -28,7 +28,7 @@ Browser → API Gateway → Lambda → DynamoDB
 **GET** `/slots?month=YYYY-MM` — Returns availability map for the month.
 Each date maps slot times to `"available"` or `"booked"`. Sundays excluded.
 
-**POST** `/booking` — Creates a booking.
+**POST** `/booking` — Creates a booking request (status: PENDING).
 ```json
 {
   "name": "string",
@@ -40,6 +40,15 @@ Each date maps slot times to `"available"` or `"booked"`. Sundays excluded.
 }
 ```
 Returns 200 on success, 409 if slot taken, 400 on validation error.
+Sibel receives HTML email with accept/reschedule/reject buttons + SMS.
+
+**GET** `/action?token=TOKEN&action=accept|reject` — Sibel accepts or rejects a booking from email.
+
+**GET** `/reschedule?token=TOKEN` — Shows Sibel a date/time picker to propose a new slot.
+
+**POST** `/reschedule` — Submits Sibel's proposed new date/time. Customer receives email with accept/reject buttons.
+
+**GET** `/respond?token=TOKEN&action=accept|reject` — Customer accepts or rejects the rescheduled time.
 
 ## Frontend
 

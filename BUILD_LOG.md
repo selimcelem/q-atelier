@@ -196,6 +196,18 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 ### Dependencies
 - Added `uuid` package to Lambda for token generation
 
+### Bug fixes (2026-03-30)
+- Fixed API Gateway "Missing Authentication Token" — added `triggers` block to force new deployment
+- Sibel notification email now uses HTML with styled action buttons (green/blue/red)
+- Removed BCC to Sibel on customer confirmation emails (was causing duplicate emails)
+- Pure CSS hamburger menu for mobile nav (replaced broken JS toggle)
+- Fixed POST /booking: cancelled slots now rebookable (`attribute_not_exists OR status=CANCELLED`)
+- Fixed /respond endpoint: added `dynamodb:Scan` to Lambda IAM policy
+- Fixed /respond accept: creates new DynamoDB item at suggested date/time (partition key immutable)
+- Sibel now receives .ics attachment on accept (both direct accept and reschedule accept)
+- All email dates now use dd/mm/yyyy format
+- Lambda deploy added to GitHub Actions CI/CD pipeline
+
 ---
 
 ## TODO — next sessions
