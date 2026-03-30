@@ -7,7 +7,7 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ---
 
 ## Privacy
-- [x] Remove "Sibel Celem" from all repo files — use "de eigenaar" or nothing
+- [x] Remove owner name from all repo files — use role references instead
 - [x] Make sure no full name appears in frontend, emails, or Terraform config
 - [ ] GitHub repo: check git history for name leaks (git grep)
 
