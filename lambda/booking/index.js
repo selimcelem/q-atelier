@@ -91,7 +91,7 @@ function validateToken(item) {
 
 function htmlPage(title, body) {
   return `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>${title} — Q-atelier</title>
+<title>${title} — Q-Atelier</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#FAF8F5;color:#2C2623;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:2rem}
 .card{max-width:500px;width:100%;background:#fff;border:1px solid #E8DAD2;padding:2.5rem;text-align:center}
 h1{font-size:1.4rem;margin-bottom:1rem;color:#2C2623}p{font-size:0.95rem;line-height:1.7;color:#5A4F4A;margin-bottom:0.8rem}
@@ -245,12 +245,12 @@ async function createBooking(event) {
   await sendPlainEmail({
     to: email,
     from: FROM_EMAIL,
-    subject: 'Uw afspraak aanvraag bij Q-atelier is ontvangen',
+    subject: 'Uw afspraak aanvraag bij Q-Atelier is ontvangen',
     body:
       `Beste ${name},\r\n\r\n` +
       `Wij hebben uw aanvraag ontvangen voor een afspraak op ${fd} om ${time_slot} voor ${service}.\r\n\r\n` +
       `Wij nemen zo snel mogelijk contact op ter bevestiging.\r\n\r\n` +
-      `Met vriendelijke groet,\r\nQ-atelier`,
+      `Met vriendelijke groet,\r\nQ-Atelier`,
   });
 
   return { statusCode: 200, headers: JSON_HEADERS, body: JSON.stringify({ message: 'Aanvraag ontvangen' }) };
@@ -318,12 +318,12 @@ async function handleAction(event) {
     await sendPlainEmail({
       to: email,
       from: FROM_EMAIL,
-      subject: 'Uw afspraak bij Q-atelier',
+      subject: 'Uw afspraak bij Q-Atelier',
       body:
         `Beste ${name},\r\n\r\n` +
         `Helaas kunnen wij uw afspraak op dit moment niet bevestigen.\r\n` +
         `Wij nemen zo snel mogelijk contact met u op.\r\n\r\n` +
-        `Met vriendelijke groet,\r\nQ-atelier`,
+        `Met vriendelijke groet,\r\nQ-Atelier`,
     });
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
@@ -372,7 +372,7 @@ async function showRescheduleForm(event) {
   const slotsOptions = ALL_SLOTS.map(s => `<option value="${s}">${s}</option>`).join('');
 
   const formHtml = `<!DOCTYPE html><html lang="nl"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Nieuw tijdstip voorstellen — Q-atelier</title>
+<title>Nieuw tijdstip voorstellen — Q-Atelier</title>
 <style>*{margin:0;padding:0;box-sizing:border-box}body{font-family:'Segoe UI',sans-serif;background:#FAF8F5;color:#2C2623;display:flex;justify-content:center;align-items:center;min-height:100vh;padding:2rem}
 .card{max-width:500px;width:100%;background:#fff;border:1px solid #E8DAD2;padding:2.5rem}
 h1{font-size:1.3rem;margin-bottom:1.5rem;text-align:center}
@@ -487,13 +487,13 @@ async function handleReschedule(event) {
 <a href="${acceptUrl}" style="${btnStyle}background:#3A7D44;margin:0 8px 10px;">Accepteren</a>
 <a href="${rejectUrl}" style="${btnStyle}background:#A63D40;margin:0 8px 10px;">Afwijzen</a>
 </div>
-<p style="font-size:13px;color:#8A7F7A;">Met vriendelijke groet,<br>Q-atelier</p>
+<p style="font-size:13px;color:#8A7F7A;">Met vriendelijke groet,<br>Q-Atelier</p>
 </div></body></html>`;
 
   await sendHtmlEmail({
     to: email,
     from: FROM_EMAIL,
-    subject: `Nieuw tijdstip voorgesteld — Q-atelier`,
+    subject: `Nieuw tijdstip voorgesteld — Q-Atelier`,
     html: rescheduleHtml,
   });
 
@@ -622,11 +622,11 @@ async function handleRespond(event) {
     await sendPlainEmail({
       to: email,
       from: FROM_EMAIL,
-      subject: 'Uw afspraak bij Q-atelier',
+      subject: 'Uw afspraak bij Q-Atelier',
       body:
         `Beste ${name},\r\n\r\n` +
         `Helaas. Neem contact op met ons via +31 6 85 56 95 51 of q.atelier89@gmail.com om een passend tijdstip te vinden.\r\n\r\n` +
-        `Met vriendelijke groet,\r\nQ-atelier`,
+        `Met vriendelijke groet,\r\nQ-Atelier`,
     });
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
@@ -643,7 +643,7 @@ async function handleRespond(event) {
         `WhatsApp: ${whatsappUrl}`,
     });
 
-    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Q-atelier neemt contact met u op.</p>') };
+    return { statusCode: 200, headers: HTML_HEADERS, body: htmlPage('Begrepen', '<p>Q-Atelier neemt contact met u op.</p>') };
   }
 
   return { statusCode: 400, headers: HTML_HEADERS, body: htmlPage('Fout', '<p class="err">Ongeldige actie.</p>') };

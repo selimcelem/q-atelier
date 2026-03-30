@@ -210,16 +210,29 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ---
 
-## Phase 4 — Branding, Redesign, Subpages, Availability (2026-03-30)
+## Phase 4 — Branding, Redesign, Subpages, Availability, Video (2026-03-30)
+
+### Privacy cleanup
+- Replaced owner name with "de eigenaar" across all repo files (CLAUDE.md, BUILD_LOG.md, PROJECT_BRIEF.md, lambda email text, frontend)
+- Variable names (SIBEL_EMAIL etc.) and Terraform resource names left unchanged
 
 ### Branding
-- Renamed "Q — Atelier" / "Q-Atelier" to "Q-atelier" everywhere (frontend, emails, Lambda HTML pages)
+- Standardised brand name to "Q-Atelier" everywhere (frontend, emails, Lambda HTML pages)
+- Replaced "Q — Atelier" (with em dash/spaces) and "Q-atelier" variants
 
 ### Color palette redesign
 - New warm blush palette inspired by damore.nl
 - Background: #FDFAF7, accent: #D4A5A5 / #C68B8B, text: #3D2B2B
 - Hero background: #F9F0F0, card background: #FBF5F5
+- Typography: Cormorant Garamond (italic serif headlines) + Jost (clean sans body)
 - Updated all CSS variables and color references
+
+### Hero video background
+- Fullscreen background video (`video/hero.mp4`) served from CloudFront
+- Semi-transparent overlay (rgba(0,0,0,0.4)) for text readability
+- White text and CTA button over video with z-index layering
+- Fallback cream background if video fails to load
+- S3 deploy commands updated with `--exclude "video/*"` to prevent deletion
 
 ### Calendar & availability updates
 - Day-specific availability slots:
@@ -241,19 +254,20 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - Added `sendNotificationWithIcs` to email.js
 
 ### New subpages
-- `diensten.html` — full pricing tables (bruidsjurken, galajurken, broeken, jassen, overige, woningtextiel)
-- `over-ons.html` — brand story (Wie zijn wij, Onze werkwijze, Waarom Q-atelier), reviews placeholder
+- `diensten.html` — full pricing tables with inline-styled two-column layout (bruidsjurken, galajurken, broeken, jassen, overige, woningtextiel)
+- `over-ons.html` — brand story (Wie zijn wij, Onze werkwijze, Waarom Q-Atelier), reviews placeholder
 - Navigation updated: Diensten → diensten.html, Over ons → over-ons.html
+
+### Frontend fixes
+- Service dropdown updated: removed "Maatwerk op aanvraag", added "Bruidsjurken — vermaak", "Galajurken — vermaak", "Gordijnen inkorten"
+- "Bekijk onze diensten" CTA button added to Diensten section on homepage
+- "Meer over ons" CTA button added to Over ons section on homepage
+- Pricing tables rewritten with inline styles for guaranteed PRIJS column right-alignment
 
 ### Deployment
 - Frontend synced to S3, CloudFront cache invalidated
 - Lambda redeployed with updated code
-
-### Follow-up fixes
-- Service dropdown updated: removed "Maatwerk op aanvraag", added "Bruidsjurken — vermaak", "Galajurken — vermaak", "Gordijnen inkorten"
-- "Bekijk onze diensten" CTA button added to Diensten section on homepage
-- "Meer over ons" CTA button added to Over ons section on homepage
-- Price table alignment fixed: PRIJS column header + values right-aligned
+- GitHub Actions deploy.yml updated with `--exclude "video/*"`
 
 ### SNS SMS sandbox
 - Phone number verified in SNS sandbox

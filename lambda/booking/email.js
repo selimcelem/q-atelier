@@ -7,21 +7,21 @@ const { SESClient, SendRawEmailCommand } = require('@aws-sdk/client-ses');
 const ses = new SESClient({ region: 'eu-west-1' });
 
 async function sendBookingEmail({ to, from, bcc, name, date, time_slot, service, icsContent }) {
-  const subject = `Bevestiging afspraak Q-atelier — ${date} om ${time_slot}`;
+  const subject = `Bevestiging afspraak Q-Atelier — ${date} om ${time_slot}`;
   const body =
     `Beste ${name},\r\n\r\n` +
-    `Hierbij de bevestiging van uw afspraak bij Q-atelier.\r\n\r\n` +
+    `Hierbij de bevestiging van uw afspraak bij Q-Atelier.\r\n\r\n` +
     `Datum: ${date}\r\n` +
     `Tijd: ${time_slot}\r\n` +
     `Service: ${service}\r\n\r\n` +
     `Adres: Laan van Vollenhove 159, 3706 CD Zeist.\r\n\r\n` +
-    `Tot dan!\r\n— Q-atelier`;
+    `Tot dan!\r\n— Q-Atelier`;
 
   const boundary = `----=_Part_${Date.now()}`;
   const icsBase64 = Buffer.from(icsContent).toString('base64');
 
   const headers = [
-    `From: Q-atelier <${from}>`,
+    `From: Q-Atelier <${from}>`,
     `To: ${to}`,
   ];
   if (bcc) headers.push(`Bcc: ${bcc}`);
@@ -57,7 +57,7 @@ async function sendBookingEmail({ to, from, bcc, name, date, time_slot, service,
 
 async function sendPlainEmail({ to, from, subject, body }) {
   const rawMessage = [
-    `From: Q-atelier <${from}>`,
+    `From: Q-Atelier <${from}>`,
     `To: ${to}`,
     `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
     'MIME-Version: 1.0',
@@ -76,7 +76,7 @@ async function sendPlainEmail({ to, from, subject, body }) {
 
 async function sendHtmlEmail({ to, from, subject, html }) {
   const rawMessage = [
-    `From: Q-atelier <${from}>`,
+    `From: Q-Atelier <${from}>`,
     `To: ${to}`,
     `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
     'MIME-Version: 1.0',
@@ -98,7 +98,7 @@ async function sendNotificationWithIcs({ to, from, subject, body, icsContent }) 
   const icsBase64 = Buffer.from(icsContent).toString('base64');
 
   const rawMessage = [
-    `From: Q-atelier <${from}>`,
+    `From: Q-Atelier <${from}>`,
     `To: ${to}`,
     `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
     'MIME-Version: 1.0',
