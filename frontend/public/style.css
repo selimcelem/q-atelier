@@ -270,9 +270,30 @@ nav {
 
 /* ── Section Divider ─────────────────────────────────────── */
 .section-divider {
+  display: flex;
+  align-items: center;
   width: 100%;
-  padding: 1rem 0;
-  overflow: hidden;
+  padding: 1.5rem 0;
+}
+
+.section-divider::before,
+.section-divider::after {
+  content: '';
+  flex: 1;
+  height: 1.5px;
+  background-color: #dfc0be;
+}
+
+.divider-rings {
+  flex-shrink: 0;
+  width: 90px;
+  margin: 0 0px;
+}
+
+.divider-rings svg {
+  width: 90px;
+  height: auto;
+  display: block;
 }
 
 /* ── Services ────────────────────────────────────────────── */
