@@ -287,7 +287,6 @@ nav {
 .divider-rings {
   flex-shrink: 0;
   width: 90px;
-  margin: 0 0px;
 }
 
 .divider-rings svg {
