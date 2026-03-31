@@ -16,13 +16,13 @@ variable "domain_name" {
 }
 
 variable "sibel_email" {
-  description = "Sibel's Gmail address for booking notifications"
+  description = "Owner's email address for booking notifications"
   type        = string
   sensitive   = true
 }
 
 variable "sibel_phone" {
-  description = "Sibel's phone number for SMS notifications (+31...)"
+  description = "Owner's phone number for SMS notifications (+31...)"
   type        = string
   sensitive   = true
 }

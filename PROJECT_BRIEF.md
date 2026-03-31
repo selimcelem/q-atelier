@@ -1,15 +1,15 @@
 # Q-Atelier — Project Brief
 
-**Owner:** Selim Celem  
-**Client:** Q-Atelier — q-atelier.nl 
-**Stack:** AWS · Terraform · Claude Code  
-**Goal:** Replace a €15/month website builder with a production-grade, nearly-free AWS static site + booking system  
+**Developer:** Selim Celem
+**Client:** Q-Atelier — q-atelier.nl
+**Stack:** AWS · Terraform · Claude Code
+**Goal:** Replace a €15/month website builder with a production-grade, nearly-free AWS static site + booking system
 
 ---
 
 ## Background
 
-De eigenaar runt een bridal dress tailoring atelier in Zeist, Netherlands. The current site (JWWB builder) costs €15/month and routes every CTA to a WhatsApp link. There is no booking flow, no Google presence, and no customer confirmation system. The site is invisible in search results.
+De eigenaar runs a bridal dress tailoring atelier in Zeist, Netherlands. The current site (JouwWeb builder) costs €15/month and routes every CTA to a WhatsApp link. There is no booking flow, no Google presence, and no customer confirmation system. The site is invisible in search results.
 
 This project replaces it with a fast, professional static site with a self-service booking calendar, automated email confirmations, and proper SEO foundations — all for ~€0/month operational cost.
 
@@ -22,15 +22,15 @@ This is also a portfolio project for Selim (career switcher: BIM Engineering →
 | Priority | Goal |
 |----------|------|
 | P0 | Static site live on q-atelier.nl via S3 + CloudFront + ACM |
-| P0 | Cancel the €15/month JWWB subscription |
+| P0 | Cancel the €15/month JouwWeb subscription |
 | P1 | Booking calendar with available/unavailable slots |
-| P1 | SES email confirmation to customer + de eigenaar on booking |
+| P1 | Email confirmation to customer + de eigenaar on booking |
 | P1 | `.ics` calendar attachment (works on iPhone + Android + Gmail) |
 | P2 | SNS SMS ping to de eigenaar's phone on new booking |
 | P2 | Google Business Profile setup + structured data (JSON-LD) |
 | P2 | Google Search Console + sitemap submission |
 | P3 | Admin panel for de eigenaar to block/open dates |
-| P3 | Portfolio gallery with her own photos |
+| P3 | Portfolio gallery with photos |
 
 ---
 
@@ -47,12 +47,12 @@ S3 (static site)   API Gateway
                       │
                       ▼
                    Lambda
-                   ├── POST /booking  → writes to DynamoDB → triggers SES
+                   ├── POST /booking  → writes to DynamoDB → triggers email
                    └── GET  /slots    → reads from DynamoDB → returns availability
                       │
               ┌───────┴────────┐
               ▼                ▼
-          DynamoDB           SES
+          DynamoDB          Resend
       (booked slots)   (sends .ics to customer + de eigenaar)
                              │
                              ▼
@@ -60,9 +60,9 @@ S3 (static site)   API Gateway
                     (SMS to de eigenaar's phone)
 ```
 
-**Domain:** q-atelier.nl is kept on existing registrar (TransIP/Mijndomein/etc). DNS A/CNAME records are pointed at CloudFront. Route 53 is NOT used — it adds €0.50/month with no SEO benefit.
+**Domain:** q-atelier.nl is kept on existing registrar (Vimexx). DNS A/CNAME records are pointed at CloudFront. Route 53 is NOT used — it adds €0.50/month with no SEO benefit.
 
-**Email:** De eigenaar keeps q.atelier89@gmail.com. SES is configured to send FROM a verified identity. Optionally later: info@q-atelier.nl via SES.
+**Email:** De eigenaar keeps q.atelier89@gmail.com. Resend is configured to send from info@q-atelier.nl. Requires verified domain in Resend dashboard.
 
 ---
 
@@ -76,7 +76,7 @@ S3 (static site)   API Gateway
 | API Gateway | 1M calls/month | €0 |
 | Lambda | 1M invocations/month | €0 |
 | DynamoDB | 25GB, 25 WCU/RCU | €0 |
-| SES | 62K emails/month | €0 |
+| Resend | 3,000 emails/month (free tier) | €0 |
 | SNS | 1M publishes | €0 |
 | **Total** | | **~€0/month** |
 
@@ -89,7 +89,11 @@ Free tier is more than sufficient for a local atelier with ~50-100 bookings/mont
 ```
 q-atelier/
 ├── PROJECT_BRIEF.md          ← this file
-├── README.md                 ← setup guide for Claude Code / developer
+├── README.md                 ← setup guide for developer
+├── CLAUDE.md                 ← Claude Code context file
+├── REQUIREMENTS.md           ← full product requirements
+├── BUILD_LOG.md              ← running build log
+├── TASKS.md                  ← task tracker
 ├── .github/
 │   └── workflows/
 │       └── deploy.yml        ← CI: terraform plan on PR, apply on main merge
@@ -106,11 +110,9 @@ q-atelier/
 ├── backend.tf                ← S3 remote state config
 ├── terraform.tfvars.example  ← template, never commit real values
 ├── frontend/
-│   ├── public/               ← static assets
-│   └── src/                  ← HTML/CSS/JS source
+│   └── public/               ← static HTML/CSS/JS assets
 └── lambda/
-    ├── booking/              ← POST /booking handler
-    └── notify/               ← SES + .ics generator
+    └── booking/              ← Lambda handler (booking, email, ics)
 ```
 
 ---
@@ -123,8 +125,9 @@ q-atelier/
 | State backend | S3 + DynamoDB lock | Standard pattern, cheap, reliable |
 | Frontend | Vanilla HTML/CSS/JS | No build tooling overhead for a simple site |
 | Calendar invites | `.ics` (iCalendar) | Native support on iPhone, Android, Gmail, Outlook |
-| Notifications | SES (email) + SNS (SMS) | SES for rich email with attachment, SNS for instant ping |
-| DNS | Existing registrar | Free, Route 53 has no SEO benefit |
+| Email | Resend | Simple API, free tier, no SES sandbox limitations |
+| SMS | SNS | Simple, free tier sufficient |
+| DNS | Existing registrar (Vimexx) | Free, Route 53 has no SEO benefit |
 | CI/CD | GitHub Actions | Free, integrates with Terraform Cloud or direct AWS |
 
 ---
@@ -137,21 +140,22 @@ Site content is Dutch only. All copy is written for a local Dutch audience (Zeis
 
 ## Phases
 
-### Phase 1 — Foundation (do first)
+### Phase 1 — Foundation (done)
 - Bootstrap Terraform state (S3 bucket + DynamoDB lock table)
 - Deploy hosting module (S3 + CloudFront + ACM cert)
 - Point domain DNS at CloudFront
-- Build and deploy barebones static site (home page only)
-- Cancel JWWB subscription
+- Build and deploy static site
+- Cancel JouwWeb subscription
 
-### Phase 2 — Booking
+### Phase 2 — Booking (done)
 - Build booking calendar UI
 - Deploy API module (API Gateway + Lambda + DynamoDB)
 - Implement GET /slots and POST /booking endpoints
-- Wire up SES for customer confirmation with .ics attachment
+- Wire up email confirmation to customer with .ics attachment
 - Wire up SNS for de eigenaar SMS notification
+- Manual confirmation flow (accept / reschedule / reject)
 
-### Phase 3 — SEO & Polish
+### Phase 3 — SEO & Polish (pending)
 - Add JSON-LD structured data (LocalBusiness schema)
 - Add sitemap.xml + robots.txt
 - Submit to Google Search Console
@@ -173,7 +177,6 @@ Site content is Dutch only. All copy is written for a local Dutch audience (Zeis
 - [ ] Appointment duration (e.g. 60 minutes)
 - [ ] Preferred language for customer emails (Dutch)
 - [ ] Whether manual or auto-confirm bookings are preferred
-- [ ] AWS account access (Selim sets this up)
 
 ---
 
@@ -186,7 +189,7 @@ This project demonstrates the following AWS SAA-C03 domains in production:
 - ACM certificate provisioning + DNS validation
 - API Gateway REST API + Lambda proxy integration
 - DynamoDB table design (partition key: date, sort key: time slot)
-- SES domain identity + DKIM/SPF + sending with attachments
+- SES domain identity + DKIM/SPF (legacy, migrated to Resend)
 - SNS topic + SMS subscription
 - IAM roles with least-privilege policies per Lambda function
 - Terraform remote state (S3 + DynamoDB locking)

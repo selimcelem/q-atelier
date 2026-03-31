@@ -13,12 +13,12 @@ variable "ses_from_email" {
 }
 
 # ── SES email identity ────────────────────────────────────────────
-# Verifies the sender address. Sibel will get a verification email.
+# Verifies the sender address. Owner will get a verification email.
 resource "aws_ses_email_identity" "sender" {
   email = var.ses_from_email
 }
 
-# SES receiving identity for Sibel's gmail (so she can receive from SES)
+# SES receiving identity for owner's gmail (so they can receive from SES)
 resource "aws_ses_email_identity" "sibel" {
   email = var.sibel_email
 }

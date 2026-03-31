@@ -14,7 +14,7 @@ for the developer (AWS SAA-C03 candidate, career switching from BIM to Cloud Eng
 - Hosting: S3 + CloudFront + ACM — DEPLOYED
 - API: API Gateway + Lambda (Node.js 20) — DEPLOYED
 - Database: DynamoDB — DEPLOYED
-- Email: SES with .ics attachment — DEPLOYED (sandbox mode)
+- Email: Resend with .ics attachment — DEPLOYED
 - SMS: SNS — DEPLOYED
 - Frontend: Vanilla HTML/CSS/JS (no build tooling)
 - Language: Dutch (nl)
@@ -28,7 +28,7 @@ for the developer (AWS SAA-C03 candidate, career switching from BIM to Cloud Eng
 - API Gateway: q-atelier-api (stage: prod)
 - API endpoint: https://apqc7wkzj6.execute-api.eu-west-1.amazonaws.com/prod
 - Lambda: q-atelier-booking (GET /slots + POST /booking fully implemented)
-- SES identity: q.atelier89@gmail.com (verified, sandbox mode)
+- Email: Resend (from info@q-atelier.nl, RESEND_API_KEY in Lambda env)
 - SNS topic: q-atelier-booking-alerts
 
 ## Business details
@@ -40,7 +40,7 @@ Phone: +31 6 85 56 95 51
 Email: q.atelier89@gmail.com
 Instagram: https://instagram.com/q_atelier_
 WhatsApp: https://api.whatsapp.com/send?phone=31685569551
-Opening hours: maandag t/m zaterdag 08:00 – 19:00, zondag gesloten
+Opening hours: Ma 12:00–18:00 · Di 10:00–18:00 · Wo gesloten · Do 10:00–18:00 · Vr 10:00–18:00 · Za 12:00–18:00 · Zo gesloten
 
 ## Conventions
 
@@ -49,8 +49,8 @@ Opening hours: maandag t/m zaterdag 08:00 – 19:00, zondag gesloten
 - IAM least-privilege, no hardcoded secrets
 - .ics format for calendar invites (not CSV)
 - Appointment duration: 60 minutes
-- Available slots: Mon-Sat 10:00 11:00 13:00 14:00 15:00 16:00
-- Sunday: closed
+- Available slots: day-specific (see SLOTS_BY_DAY in lambda/booking/index.js)
+- Wednesday + Sunday: closed
 - window.API_ENDPOINT in index.html must never be changed
 
 ## Key files
@@ -63,7 +63,7 @@ Opening hours: maandag t/m zaterdag 08:00 – 19:00, zondag gesloten
 - `modules/notifications/main.tf` — SES + SNS
 - `lambda/booking/index.js` — Lambda handler
 - `lambda/booking/ics.js` — .ics generator
-- `lambda/booking/email.js` — SES email helper
+- `lambda/booking/email.js` — Resend email helper
 - `frontend/public/` — static site files
 
 ### TODAY'S MISSION

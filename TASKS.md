@@ -1,6 +1,6 @@
 # Q-Atelier — Task Tracker
 
-Last updated: 2026-03-30
+Last updated: 2026-03-31
 
 Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 
@@ -9,6 +9,7 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ## Privacy
 - [x] Remove owner name from all repo files — use role references instead
 - [x] Make sure no full name appears in frontend, emails, or Terraform config
+- [x] Replace "Sibel" with "de eigenaar" in all .md files and Terraform comments
 - [ ] GitHub repo: check git history for name leaks (git grep)
 - [ ] Before making repo public: rewrite git history to remove owner name from old commit messages (git filter-branch or BFG Repo Cleaner)
 
@@ -24,34 +25,23 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 - [x] Add WhatsApp icon to contact section
 - [x] Add Instagram icon to contact section
 - [x] Add Google Maps link + icon to address in contact section
+- [x] SVG ring divider between hero and intro sections
+- [x] Hero background video
 
 ---
 
 ## Frontend — Pages & Content
 - [x] Add "Diensten" subpage with full pricing list + details
 - [x] Add "Over ons" subpage with brand story (no full name), client reviews section
-- [x] Add pricing to Diensten page:
-  - Galajurken vermaak (full list)
-  - Bruidsjurken vermaak (full list)
-  - Broeken (full list)
-  - Jassen & Mantels (full list)
-  - Overige kleding (full list)
-  - Woningtextiel (full list)
+- [x] Add review photos and about us photos to over-ons.html
+- [x] Add photo lightbox (native dialog element) for clickable image expansion
+- [x] Add pricing to Diensten page (all categories)
 
 ---
 
 ## Booking — Calendar
 - [x] Fix: past dates and times should be greyed out and unclickable
-  - Past dates: entire day greyed out
-  - Today: slots before current time greyed out (Amsterdam timezone)
-- [x] Update available slots to match availability:
-  - Maandag: 12:00 – 18:00
-  - Dinsdag: 10:00 – 18:00
-  - Woensdag: GESLOTEN
-  - Donderdag: 10:00 – 18:00
-  - Vrijdag: 10:00 – 18:00
-  - Zaterdag: 12:00 – 18:00
-  - Zondag: GESLOTEN
+- [x] Update available slots to match day-specific availability
 - [ ] Update appointment duration logic:
   - Bruidsjurk: 90 minutes (1.5 hour slots)
   - Overige kleding: 60 minutes
@@ -60,9 +50,9 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ---
 
 ## Booking — Email flow
-- [x] Fix: when client accepts rescheduled date, q-atelier89@gmail.com gets wrong email
-  - Previously: got a copy of the client confirmation email
-  - Now: gets notification "De klant heeft uw voorgestelde datum geaccepteerd" + .ics
+- [x] Fix: when client accepts rescheduled date, owner gets correct notification email
+- [x] Migrate email sending from AWS SES to Resend
+- [ ] Resend domain verification (q-atelier.nl DNS records in Resend dashboard)
 
 ---
 
@@ -72,13 +62,30 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
   - [x] SMS quota increase requested
   - [x] Sandbox exit support case submitted
   - [ ] Awaiting AWS approval for sandbox exit
+- [ ] Decision: keep SNS SMS or replace with Twilio
 
 ---
 
 ## SES — Production Access
-- [~] SES production access request
+- [~] SES production access request (legacy — may no longer be needed since migrated to Resend)
   - [x] Support case replied to with additional info
   - [ ] Awaiting AWS approval
+
+---
+
+## SEO & Discovery
+- [ ] JSON-LD LocalBusiness structured data
+- [ ] Sitemap.xml + robots.txt
+- [ ] Proper meta tags (og:image, description) on all pages
+- [ ] Schema markup for services + pricing
+- [ ] Google Business Profile setup
+- [ ] Google Search Console submission
+
+---
+
+## DNS & Go-live
+- [ ] DNS cutover from JouwWeb to CloudFront (pending de eigenaar approval)
+- [ ] Git history cleanup before repo goes public
 
 ---
 

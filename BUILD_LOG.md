@@ -71,7 +71,7 @@ Cannot proceed with CloudFront deployment until:
 - [ ] We add the ACM DNS validation CNAME records to her domain
 - [ ] Cert shows "Issued" in AWS Certificate Manager (us-east-1)
 
-Checklist sent to de eigenaar via WhatsApp as interactive HTML form (`sibel_checklist.html`).
+Checklist sent to de eigenaar via WhatsApp as interactive HTML form.
 
 ---
 
@@ -279,6 +279,37 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ---
 
+## Phase 5 — Polish, Email Migration, Photos (2026-03-31)
+
+### SVG ring divider
+- Added inline SVG decorative ring divider between hero and intro sections
+- Positioned with CSS z-index layering for overlap effect
+
+### Email migration: SES → Resend
+- SES sandbox limitations blocking production email delivery
+- Installed `resend` npm package in Lambda
+- Rewrote `lambda/booking/email.js` to use Resend SDK instead of SES raw email
+- All 4 email functions preserved (sendBookingEmail, sendPlainEmail, sendHtmlEmail, sendNotificationWithIcs)
+- .ics attachments work via Resend's `attachments` array
+- Emails sent from `Q-Atelier <info@q-atelier.nl>` (requires Resend domain verification)
+- Added `RESEND_API_KEY` Lambda environment variable
+
+### Review & About Us photos
+- Uploaded customer review screenshots to `s3://q-atelier-site/Review pictures/`
+- Uploaded atelier photos to `s3://q-atelier-site/About us/`
+- Added photo grids to `over-ons.html` (Wie zijn wij + Wat onze klanten zeggen sections)
+- Photo grid: 3-column on desktop, 1-column on mobile, rounded corners, hover effect
+- Added native `<dialog>` lightbox for clickable photo expansion
+- S3 sync commands updated with `--exclude "About us/*" --exclude "Review pictures/*"` to prevent `--delete` from removing S3-only assets
+
+### Repo audit & cleanup
+- Replaced owner's personal name with "de eigenaar" across all docs and Terraform comments
+- Updated PROJECT_BRIEF.md to English only (was mixed Dutch/English)
+- Updated README.md with Resend, environment variables, full deploy commands
+- Updated CLAUDE.md with current email provider, opening hours, slot config
+
+---
+
 ## TODO — next sessions
 
 ### SEO
@@ -299,7 +330,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 | SSL cert region | us-east-1 | Required by CloudFront |
 | Frontend | Vanilla HTML/CSS/JS | No build tooling for a simple site |
 | Calendar invites | `.ics` iCalendar format | Native on iPhone, Android, Gmail, Outlook |
-| Email sender | SES | Cheapest, supports raw email with attachments |
+| Email sender | Resend (was SES) | Simple API, free tier, no sandbox limitations |
 | SMS | SNS | Simple, free tier sufficient |
 | CI/CD | GitHub Actions | Free, Terraform plan on PR / apply on merge |
 
