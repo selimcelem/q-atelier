@@ -839,6 +839,29 @@ footer {
   font-style: italic;
 }
 
+/* ── Photo Grid ─────────────────────────────────────────── */
+.photo-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.photo-grid img {
+  width: 100%;
+  height: 280px;
+  object-fit: cover;
+  border-radius: 12px;
+  background: var(--bg-alt);
+  box-shadow: 0 2px 12px rgba(61, 43, 43, 0.08);
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
+}
+
+.photo-grid img:hover {
+  transform: scale(1.03);
+  box-shadow: 0 4px 20px rgba(61, 43, 43, 0.14);
+}
+
 /* ── Responsive ──────────────────────────────────────────── */
 @media (max-width: 768px) {
   nav { padding: 1rem 1.5rem; }
@@ -875,6 +898,8 @@ footer {
   .timeslots-grid { grid-template-columns: repeat(2, 1fr); }
   .contact-links { flex-direction: column; align-items: center; }
   .page-section { padding: 3rem 1.5rem; }
+  .photo-grid { grid-template-columns: 1fr; gap: 0.75rem; }
+  .photo-grid img { height: 220px; }
 }
 
 @media (max-width: 480px) {
