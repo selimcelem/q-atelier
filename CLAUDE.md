@@ -193,9 +193,10 @@ Sync frontend to S3:
 ```bash
 aws s3 sync frontend/public/ s3://q-atelier-site --delete \
   --cache-control "max-age=31536000" --exclude "*.html" --exclude "video/*" \
-  --exclude "About us/*" --exclude "Review pictures/*"
+  --exclude "About us/*" --exclude "Review pictures/*" --exclude "Diensten/*"
 aws s3 sync frontend/public/ s3://q-atelier-site --delete \
-  --cache-control "no-cache" --exclude "*" --include "*.html"
+  --cache-control "no-cache" --include "*.html" --exclude "video/*" \
+  --exclude "About us/*" --exclude "Review pictures/*" --exclude "Diensten/*"
 ```
 
 Invalidate CloudFront:
