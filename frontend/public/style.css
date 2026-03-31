@@ -871,6 +871,10 @@ dialog.lightbox {
   max-height: 90vh;
   overflow: visible;
   position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  margin: 0;
 }
 
 dialog.lightbox::backdrop {
