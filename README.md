@@ -2,7 +2,7 @@
 
 A fully serverless website and booking system for a bridal tailoring atelier in Zeist, Netherlands. Built entirely with AWS services and Terraform, replacing a €15/month website builder with a production-grade solution running at ~€0/month.
 
-Live site: [q-atelier.nl](https://q-atelier.nl)
+Live site: [q-atelier.nl](https://www.q-atelier.nl)
 
 ---
 
