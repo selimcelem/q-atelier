@@ -985,6 +985,8 @@ dialog.lightbox .lightbox-close {
   .contact-links { flex-direction: column; align-items: center; }
   .page-section { padding: 3rem 1.5rem; }
   .diensten-intro-grid { grid-template-columns: 1fr; gap: 1.5rem; }
+  .diensten-intro-card img { height: 220px; width: 100%; object-fit: cover; object-position: center; }
+  .diensten-intro-card { text-align: center; }
   .photo-grid { grid-template-columns: 1fr; gap: 0.75rem; }
   .photo-grid img { height: 220px; }
   dialog.lightbox[open] { padding: 1rem; }
