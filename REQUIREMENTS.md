@@ -1,171 +1,156 @@
 # Requirements — Q-Atelier Website
 
-Last updated: 2026-03-30
-Status: In progress
+Last updated: 2026-03-31
+Status: Live in production
 
 ---
 
-## Design requirements
+## Design
 
-### Overall aesthetic
-- Romantic, chique, elegant — NOT vanilla/generic
-- Reference: current site at q-atelier.nl (warm, bridal, feminine)
-- Fonts: serif display font (think Cormorant Garamond, Playfair Display) + clean body font
-- Colors: warm creams, blush pinks, champagne/gold accents, deep dusty rose
-- Photography: real photos of the atelier's work (to be supplied — placeholder for now)
-- Feel: high-end bridal boutique, not a generic small business website
+### Aesthetic
+- Romantic, elegant, high-end bridal boutique feel
+- Typography: Cormorant Garamond (serif headlines) + Jost (sans-serif body)
+- Palette: warm blush (#FDFAF7 background, #D4A5A5 / #C68B8B accents, #3D2B2B text)
+- Hero section with fullscreen background video and semi-transparent overlay
 
-### Pages / sections
-1. Hero — full-width image, elegant headline, CTA
-2. About — short intro about the atelier
-3. Services — Bruidsjurk vermaken, Dagelijkse kleding repareren, Maatwerk op aanvraag
-4. Portfolio — photo gallery of completed work (photos to be supplied by client)
-5. Booking — interactive calendar (see booking flow below)
-6. Contact — address, social media links, booking info
+### Pages
+1. **Home** (`index.html`) — Hero with video, intro strip, services overview, booking calendar, contact section with opening hours
+2. **Services** (`diensten.html`) — Full pricing tables for all service categories (bridal gowns, evening gowns, trousers, jackets, general clothing, home textiles)
+3. **About** (`over-ons.html`) — Brand story, process overview, client review photos, atelier photos with lightbox
 
----
-
-## Booking flow — full specification
-
-### Current (Phase 2 — built)
-- Customer picks date + slot on calendar
-- Fills in form (name, email, phone, service)
-- Auto-confirmed immediately
-- Customer gets .ics + confirmation email
-- The business owner gets email
-
-### Required (Phase 3 — to build)
-Manual confirmation flow — the business owner reviews each booking request before it is confirmed.
+### Frontend
+- Vanilla HTML/CSS/JS — no build tooling
+- Responsive design (mobile hamburger menu, single-column stacking)
+- Scroll animations via Intersection Observer
+- SVG inline icons for WhatsApp, Instagram, Google Maps in contact section
+- All customer-facing text in Dutch
 
 ---
+
+## Booking flow
 
 ### Step 1 — Customer requests appointment
-Customer fills in booking form on website.
+- Customer selects a date on the interactive calendar (month navigation, past dates greyed out)
+- Selects an available time slot (past slots on today greyed out using `Europe/Amsterdam` timezone)
+- Fills in: name, email, phone, service type
+- Booking saved to DynamoDB with status `PENDING`
+- Cancelled slots are automatically freed up and become rebookable
 
-DynamoDB status written as: `PENDING`
+### Step 2 — Business owner receives notification
+The business owner receives an HTML email via Resend with:
+- Customer details (name, email, phone, date, time slot, service)
+- Three action buttons: **Accept** (green) / **Reschedule** (blue) / **Reject** (red)
+- All links are token-secured (see Security section below)
 
-The business owner receives email with:
-  - Customer details (name, email, phone, date, time slot, service)
-  - Three action buttons:
+### Step 3 — Business owner responds
 
----
-
-### Step 2 — Business owner's action (3 options)
-
-#### Option A — Accept
-The business owner clicks "Accepteren" in the email.
-
-Result:
+#### Accept
 - DynamoDB status → `CONFIRMED`
-- Customer receives:
-  - Confirmation email in Dutch addressing them by name
-  - .ics calendar invite attached
-  - Body: "Beste [naam], uw afspraak bij Q-Atelier is bevestigd. Datum: [datum], Tijd: [tijdstip], Service: [service]. Adres: Laan van Vollenhove 159, 3706 CD Zeist. Tot dan! — Q-Atelier"
-- The business owner receives:
-  - Confirmation that the email was sent to the customer
+- Customer receives confirmation email in Dutch with .ics calendar attachment
+- The business owner receives a confirmation notification with .ics attachment
 
----
-
-#### Option B — Reject and propose new time
-The business owner clicks "Nieuw tijdstip voorstellen" in the email.
-
-The business owner is taken to a simple webpage (hosted on same S3/CloudFront) where they can:
-- See a date picker + time slot dropdown (only showing available slots)
-- Submit the new suggested date/time
-
-Result:
+#### Reschedule
+- The business owner is taken to a date/time picker page to propose a new slot
 - DynamoDB status → `RESCHEDULED`
-- Customer receives email (Dutch):
-  - "Beste [naam], helaas zijn wij op [originele datum] om [originele tijdstip] niet beschikbaar."
-  - "Wij stellen voor: [nieuwe datum] om [nieuwe tijdstip]."
-  - Two buttons: "Accepteren" / "Afwijzen"
+- Customer receives email with the proposed new date and two buttons: Accept / Reject
+- If customer accepts: status → `CONFIRMED`, customer gets .ics, business owner gets notification + .ics
+- If customer rejects: status → `CANCELLED`, business owner gets notification with customer contact details and WhatsApp link for manual follow-up
 
-Customer response:
-- If customer clicks "Accepteren":
-  - DynamoDB status → `CONFIRMED`
-  - Customer gets confirmation email + .ics
-  - The business owner gets email: "[naam] heeft het nieuwe tijdstip geaccepteerd." + .ics
-- If customer clicks "Afwijzen":
-  - DynamoDB status → `CANCELLED`
-  - The business owner gets email: "[naam] heeft het nieuwe tijdstip afgewezen."
-  - Both emails include: customer phone number + email for manual follow-up
-  - The business owner's email includes WhatsApp link: https://api.whatsapp.com/send?phone=[phone]
-
----
-
-#### Option C — Reject and contact manually
-The business owner clicks "Afwijzen" in the email.
-
-Result:
+#### Reject
 - DynamoDB status → `CANCELLED`
-- Customer receives email (Dutch):
-  - "Beste [naam], helaas kunnen wij uw afspraakverzoek op dit moment niet bevestigen."
-  - "Wij nemen zo snel mogelijk contact met u op."
-- The business owner receives email with:
-  - Customer name, email, phone number
-  - WhatsApp link: https://api.whatsapp.com/send?phone=[customerphone]
-  - Note: "Neem contact op met de klant om een alternatief te bespreken."
+- Customer receives rejection email
+- The business owner receives customer contact details and WhatsApp link for manual follow-up
 
 ---
 
-### Action link security
-All action links (accept/reject/reschedule) in emails must be:
-- Signed with a token (UUID stored in DynamoDB per booking)
-- Single-use (token invalidated after use)
-- Time-limited (expire after 7 days)
+## Email system
 
-This prevents anyone who finds the email from accidentally accepting/rejecting bookings.
+- **Provider:** Resend (migrated from SES after AWS rejected production access request)
+- **Sender:** `Q-Atelier <info@q-atelier.nl>` (requires Resend domain verification)
+- **Format:** HTML emails, Dutch language
+- **Attachments:** .ics calendar invites (iCalendar format — works on iPhone, Android, Gmail, Outlook)
+- **Date format:** dd/mm/yyyy in all emails
 
 ---
 
-## DynamoDB schema update
+## Token-based action link security
 
-Add fields to booking item:
+All action links (accept/reject/reschedule) in emails use:
+- UUID token generated per booking, stored in DynamoDB
+- Single-use — status change invalidates the token
+- 7-day expiry via `token_expires_at` TTL
+- `token-index` GSI for O(1) token lookups
+
+This prevents unauthorized use of action links found in forwarded emails.
+
+---
+
+## Availability
+
+Day-specific time slots:
+- Monday: 12:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Tuesday: 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Wednesday: Closed
+- Thursday: 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Friday: 10:00, 11:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Saturday: 12:00, 13:00, 14:00, 15:00, 16:00, 17:00
+- Sunday: Closed
+
+Appointment duration: 60 minutes.
+
+---
+
+## DynamoDB schema
+
+### Booking item fields
+- `date` (S): Partition key (YYYY-MM-DD)
+- `time_slot` (S): Sort key (HH:MM)
+- `name`, `email`, `phone`, `service` (S): Customer details
 - `status` (S): PENDING | CONFIRMED | RESCHEDULED | CANCELLED
 - `token` (S): UUID for secure action links
-- `suggested_date` (S): new date proposed by the business owner (Option B)
-- `suggested_time_slot` (S): new time proposed by the business owner (Option B)
 - `token_expires_at` (N): Unix timestamp
+- `suggested_date` (S): New date proposed on reschedule
+- `suggested_time_slot` (S): New time proposed on reschedule
+- `customer_token` (S): Separate token for customer's response to reschedule
 
-Add GSI:
-- `token-index`: hash key = token (for looking up booking by token in action links)
-
----
-
-## Infrastructure additions needed
-
-- New Lambda endpoints:
-  - GET /action?token=xxx&action=accept|reject (business owner's action from email)
-  - GET /reschedule?token=xxx (business owner's reschedule page)
-  - POST /reschedule (business owner submits new date/time)
-  - GET /respond?token=xxx&action=accept|reject (Customer responds to reschedule)
-- New S3 pages:
-  - /reschedule.html (business owner's date picker page)
-  - /respond.html (Customer's accept/reject page)
+### GSIs
+- `month-index`: For querying all bookings in a given month (GET /slots)
+- `token-index`: Hash key = token, for action link lookups
 
 ---
 
-## Go-live plan
+## API endpoints
 
-### Current blocker
-ACM cert is PENDING_VALIDATION — CloudFront cannot deploy until cert is issued.
-DNS validation CNAMEs need to be added but the client wants the existing JouwWeb site to stay live.
+| Method | Path | Description |
+|--------|------|-------------|
+| GET | `/slots?month=YYYY-MM` | Returns monthly availability map (available/booked per slot) |
+| POST | `/booking` | Creates booking (PENDING), sends notification to business owner |
+| GET | `/action?token=TOKEN&action=accept\|reject` | Business owner accepts or rejects |
+| GET | `/reschedule?token=TOKEN` | Shows reschedule date/time picker |
+| POST | `/reschedule` | Submits proposed new date/time, emails customer |
+| GET | `/respond?token=TOKEN&action=accept\|reject` | Customer responds to reschedule proposal |
 
-### Solution
-1. Skip custom domain for now
-2. Deploy CloudFront with a self-signed or no custom domain first (test only)
-   OR use the raw CloudFront URL (*.cloudfront.net) for the client to test
-3. The client tests and approves the new site on the CloudFront test URL
-4. When approved: switch nameservers at Vimexx, cert validates, go live
+All endpoints served via API Gateway → Lambda proxy integration. CORS enabled.
 
-### Temporary test URL approach
-- Remove custom domain aliases from CloudFront distribution temporarily
-- CloudFront deploys successfully on its own *.cloudfront.net URL
-- The client can test on that URL
-- When ready: re-add domain aliases, validate cert, switch DNS
+---
+
+## Infrastructure
+
+| Component | Service | Status |
+|-----------|---------|--------|
+| Static hosting | S3 bucket | Live |
+| CDN + HTTPS | CloudFront + ACM | Live |
+| API | API Gateway (REST, `prod` stage) | Live |
+| Compute | Lambda (Node.js 20) | Live |
+| Database | DynamoDB (on-demand) | Live |
+| Email | Resend | Live |
+| IaC | Terraform (remote state on S3) | Live |
+| CI/CD | GitHub Actions | Live |
+| Domain | q-atelier.nl via existing registrar (Vimexx) | Live |
 
 ---
 
 ## Language
-All customer-facing content: Dutch (nl)
-All owner-facing content (emails, admin): Dutch (nl)
+- All customer-facing content: Dutch
+- All business owner-facing emails: Dutch
+- All documentation and code: English
