@@ -72,6 +72,38 @@
     </section>
   </main>
 
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-backdrop"></div>
+    <button class="lightbox-close" aria-label="Sluiten">&times;</button>
+    <img id="lightbox-img" alt="" />
+  </div>
+  <script>
+    (function() {
+      var lb = document.getElementById('lightbox');
+      var lbImg = document.getElementById('lightbox-img');
+
+      document.querySelectorAll('.photo-grid img').forEach(function(img) {
+        img.style.cursor = 'pointer';
+        img.addEventListener('click', function() {
+          lbImg.src = img.src;
+          lbImg.alt = img.alt;
+          lb.classList.add('active');
+          document.body.style.overflow = 'hidden';
+        });
+      });
+
+      function close() {
+        lb.classList.remove('active');
+        lbImg.removeAttribute('src');
+        document.body.style.overflow = '';
+      }
+
+      lb.querySelector('.lightbox-backdrop').addEventListener('click', close);
+      lb.querySelector('.lightbox-close').addEventListener('click', close);
+      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
+    })();
+  </script>
+
   <footer>
     <p>&copy; 2026 Q-Atelier — Zeist</p>
   </footer>
