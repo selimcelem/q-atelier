@@ -72,14 +72,13 @@
     </section>
   </main>
 
-  <div class="lightbox" id="lightbox">
-    <div class="lightbox-backdrop"></div>
+  <dialog class="lightbox" id="lightbox">
     <button class="lightbox-close" aria-label="Sluiten">&times;</button>
     <img id="lightbox-img" alt="" />
-  </div>
+  </dialog>
   <script>
     (function() {
-      var lb = document.getElementById('lightbox');
+      var dialog = document.getElementById('lightbox');
       var lbImg = document.getElementById('lightbox-img');
 
       document.querySelectorAll('.photo-grid img').forEach(function(img) {
@@ -87,20 +86,21 @@
         img.addEventListener('click', function() {
           lbImg.src = img.src;
           lbImg.alt = img.alt;
-          lb.classList.add('active');
-          document.body.style.overflow = 'hidden';
+          dialog.showModal();
         });
       });
 
-      function close() {
-        lb.classList.remove('active');
-        lbImg.removeAttribute('src');
-        document.body.style.overflow = '';
-      }
+      dialog.querySelector('.lightbox-close').addEventListener('click', function() {
+        dialog.close();
+      });
 
-      lb.querySelector('.lightbox-backdrop').addEventListener('click', close);
-      lb.querySelector('.lightbox-close').addEventListener('click', close);
-      document.addEventListener('keydown', function(e) { if (e.key === 'Escape') close(); });
+      dialog.addEventListener('click', function(e) {
+        if (e.target === dialog) dialog.close();
+      });
+
+      dialog.addEventListener('close', function() {
+        lbImg.removeAttribute('src');
+      });
     })();
   </script>
 
