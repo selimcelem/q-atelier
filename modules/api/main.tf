@@ -10,6 +10,10 @@ variable "ses_from_email" {
   type      = string
   sensitive = true
 }
+variable "resend_api_key" {
+  type      = string
+  sensitive = true
+}
 
 # ── IAM role for Lambda ───────────────────────────────────────────
 resource "aws_iam_role" "lambda" {
@@ -72,6 +76,7 @@ resource "aws_lambda_function" "booking" {
     variables = {
       BOOKINGS_TABLE = var.bookings_table_name
       SIBEL_EMAIL    = var.sibel_email
+      RESEND_API_KEY = var.resend_api_key
     }
   }
 }

@@ -59,4 +59,5 @@ module "api" {
   ses_topic_arn       = module.notifications.ses_topic_arn
   sibel_email         = var.sibel_email
   ses_from_email      = var.ses_from_email
+  resend_api_key      = var.resend_api_key
 }

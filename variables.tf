@@ -21,6 +21,12 @@ variable "sibel_email" {
   sensitive   = true
 }
 
+variable "resend_api_key" {
+  description = "Resend API key for sending emails"
+  type        = string
+  sensitive   = true
+}
+
 variable "ses_from_email" {
   description = "Verified SES sender address (e.g. info@q-atelier.nl or q.atelier89@gmail.com)"
   type        = string
