@@ -29,13 +29,13 @@ Status: In progress
 
 ### Current (Phase 2 — built)
 - Customer picks date + slot on calendar
-- Fills in form (naam, email, telefoon, service)
+- Fills in form (name, email, phone, service)
 - Auto-confirmed immediately
 - Customer gets .ics + confirmation email
-- De eigenaar gets email
+- The business owner gets email
 
 ### Required (Phase 3 — to build)
-Manual confirmation flow — de eigenaar reviews each booking request before it is confirmed.
+Manual confirmation flow — the business owner reviews each booking request before it is confirmed.
 
 ---
 
@@ -44,16 +44,16 @@ Customer fills in booking form on website.
 
 DynamoDB status written as: `PENDING`
 
-De eigenaar receives email with:
-  - Customer details (naam, email, telefoon, datum, tijdstip, service)
+The business owner receives email with:
+  - Customer details (name, email, phone, date, time slot, service)
   - Three action buttons:
 
 ---
 
-### Step 2 — De eigenaar's action (3 options)
+### Step 2 — Business owner's action (3 options)
 
-#### Option A — Accepteren
-De eigenaar clicks "Accepteren" in the email.
+#### Option A — Accept
+The business owner clicks "Accepteren" in the email.
 
 Result:
 - DynamoDB status → `CONFIRMED`
@@ -61,15 +61,15 @@ Result:
   - Confirmation email in Dutch addressing them by name
   - .ics calendar invite attached
   - Body: "Beste [naam], uw afspraak bij Q-Atelier is bevestigd. Datum: [datum], Tijd: [tijdstip], Service: [service]. Adres: Laan van Vollenhove 159, 3706 CD Zeist. Tot dan! — Q-Atelier"
-- De eigenaar receives:
+- The business owner receives:
   - Confirmation that the email was sent to the customer
 
 ---
 
-#### Option B — Afwijzen en nieuw tijdstip voorstellen
-De eigenaar clicks "Nieuw tijdstip voorstellen" in the email.
+#### Option B — Reject and propose new time
+The business owner clicks "Nieuw tijdstip voorstellen" in the email.
 
-De eigenaar is taken to a simple webpage (hosted on same S3/CloudFront) where they can:
+The business owner is taken to a simple webpage (hosted on same S3/CloudFront) where they can:
 - See a date picker + time slot dropdown (only showing available slots)
 - Submit the new suggested date/time
 
@@ -84,25 +84,25 @@ Customer response:
 - If customer clicks "Accepteren":
   - DynamoDB status → `CONFIRMED`
   - Customer gets confirmation email + .ics
-  - De eigenaar gets email: "[naam] heeft het nieuwe tijdstip geaccepteerd." + .ics
+  - The business owner gets email: "[naam] heeft het nieuwe tijdstip geaccepteerd." + .ics
 - If customer clicks "Afwijzen":
   - DynamoDB status → `CANCELLED`
-  - De eigenaar gets email: "[naam] heeft het nieuwe tijdstip afgewezen."
+  - The business owner gets email: "[naam] heeft het nieuwe tijdstip afgewezen."
   - Both emails include: customer phone number + email for manual follow-up
-  - De eigenaar's email includes WhatsApp link: https://api.whatsapp.com/send?phone=[phone]
+  - The business owner's email includes WhatsApp link: https://api.whatsapp.com/send?phone=[phone]
 
 ---
 
-#### Option C — Afwijzen en zelf contact opnemen
-De eigenaar clicks "Afwijzen" in the email.
+#### Option C — Reject and contact manually
+The business owner clicks "Afwijzen" in the email.
 
 Result:
 - DynamoDB status → `CANCELLED`
 - Customer receives email (Dutch):
   - "Beste [naam], helaas kunnen wij uw afspraakverzoek op dit moment niet bevestigen."
   - "Wij nemen zo snel mogelijk contact met u op."
-- De eigenaar receives email with:
-  - Customer naam, email, telefoonnummer
+- The business owner receives email with:
+  - Customer name, email, phone number
   - WhatsApp link: https://api.whatsapp.com/send?phone=[customerphone]
   - Note: "Neem contact op met de klant om een alternatief te bespreken."
 
@@ -123,8 +123,8 @@ This prevents anyone who finds the email from accidentally accepting/rejecting b
 Add fields to booking item:
 - `status` (S): PENDING | CONFIRMED | RESCHEDULED | CANCELLED
 - `token` (S): UUID for secure action links
-- `suggested_date` (S): new date proposed by de eigenaar (Option B)
-- `suggested_time_slot` (S): new time proposed by de eigenaar (Option B)
+- `suggested_date` (S): new date proposed by the business owner (Option B)
+- `suggested_time_slot` (S): new time proposed by the business owner (Option B)
 - `token_expires_at` (N): Unix timestamp
 
 Add GSI:
@@ -135,12 +135,12 @@ Add GSI:
 ## Infrastructure additions needed
 
 - New Lambda endpoints:
-  - GET /action?token=xxx&action=accept|reject (de eigenaar's action from email)
-  - GET /reschedule?token=xxx (de eigenaar's reschedule page)
-  - POST /reschedule (de eigenaar submits new date/time)
+  - GET /action?token=xxx&action=accept|reject (business owner's action from email)
+  - GET /reschedule?token=xxx (business owner's reschedule page)
+  - POST /reschedule (business owner submits new date/time)
   - GET /respond?token=xxx&action=accept|reject (Customer responds to reschedule)
 - New S3 pages:
-  - /reschedule.html (de eigenaar's date picker page)
+  - /reschedule.html (business owner's date picker page)
   - /respond.html (Customer's accept/reject page)
 
 ---
@@ -149,28 +149,20 @@ Add GSI:
 
 ### Current blocker
 ACM cert is PENDING_VALIDATION — CloudFront cannot deploy until cert is issued.
-DNS validation CNAMEs need to be added but client wants the existing JouwWeb site to stay live.
+DNS validation CNAMEs need to be added but the client wants the existing JouwWeb site to stay live.
 
 ### Solution
 1. Skip custom domain for now
 2. Deploy CloudFront with a self-signed or no custom domain first (test only)
-   OR use the raw CloudFront URL (*.cloudfront.net) for de eigenaar to test
-3. De eigenaar tests and approves the new site on the CloudFront test URL
+   OR use the raw CloudFront URL (*.cloudfront.net) for the client to test
+3. The client tests and approves the new site on the CloudFront test URL
 4. When approved: switch nameservers at Vimexx, cert validates, go live
 
 ### Temporary test URL approach
 - Remove custom domain aliases from CloudFront distribution temporarily
 - CloudFront deploys successfully on its own *.cloudfront.net URL
-- De eigenaar can test on that URL
+- The client can test on that URL
 - When ready: re-add domain aliases, validate cert, switch DNS
-
----
-
-## What the client still needs to provide
-- [ ] High-res photos of completed work (for portfolio + hero image)
-- [ ] Confirmation of available days/hours (assumed Mon-Sat 10-16 for now)
-- [ ] Preferred appointment duration (assumed 60 min for now)
-- [ ] Any specific copy/text for the site
 
 ---
 
