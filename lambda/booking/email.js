@@ -1,10 +1,12 @@
 /**
- * SES raw email helper with .ics calendar attachment.
+ * Resend email helper with .ics calendar attachment.
  */
 
-const { SESClient, SendRawEmailCommand } = require('@aws-sdk/client-ses');
+const { Resend } = require('resend');
 
-const ses = new SESClient({ region: 'eu-west-1' });
+const resend = new Resend(process.env.RESEND_API_KEY);
+
+const FROM = 'Q-Atelier <info@q-atelier.nl>';
 
 async function sendBookingEmail({ to, from, bcc, name, date, time_slot, service, icsContent }) {
   const subject = `Bevestiging afspraak Q-Atelier — ${date} om ${time_slot}`;
@@ -17,114 +19,56 @@ async function sendBookingEmail({ to, from, bcc, name, date, time_slot, service,
     `Adres: Laan van Vollenhove 159, 3706 CD Zeist.\r\n\r\n` +
     `Tot dan!\r\n— Q-Atelier`;
 
-  const boundary = `----=_Part_${Date.now()}`;
-  const icsBase64 = Buffer.from(icsContent).toString('base64');
+  const options = {
+    from: FROM,
+    to,
+    subject,
+    text: body,
+    attachments: [
+      {
+        filename: 'afspraak.ics',
+        content: Buffer.from(icsContent).toString('base64'),
+        contentType: 'text/calendar; method=REQUEST',
+      },
+    ],
+  };
+  if (bcc) options.bcc = bcc;
 
-  const headers = [
-    `From: Q-Atelier <${from}>`,
-    `To: ${to}`,
-  ];
-  if (bcc) headers.push(`Bcc: ${bcc}`);
-  headers.push(`Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`);
-
-  const rawMessage = [
-    ...headers,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: 7bit',
-    '',
-    body,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/calendar; charset=UTF-8; method=REQUEST',
-    'Content-Transfer-Encoding: base64',
-    'Content-Disposition: attachment; filename="afspraak.ics"',
-    '',
-    icsBase64,
-    '',
-    `--${boundary}--`,
-  ].join('\r\n');
-
-  await ses.send(
-    new SendRawEmailCommand({
-      RawMessage: { Data: Buffer.from(rawMessage) },
-    })
-  );
+  await resend.emails.send(options);
 }
 
 async function sendPlainEmail({ to, from, subject, body }) {
-  const rawMessage = [
-    `From: Q-Atelier <${from}>`,
-    `To: ${to}`,
-    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: 7bit',
-    '',
-    body,
-  ].join('\r\n');
-
-  await ses.send(
-    new SendRawEmailCommand({
-      RawMessage: { Data: Buffer.from(rawMessage) },
-    })
-  );
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject,
+    text: body,
+  });
 }
 
 async function sendHtmlEmail({ to, from, subject, html }) {
-  const rawMessage = [
-    `From: Q-Atelier <${from}>`,
-    `To: ${to}`,
-    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
-    'MIME-Version: 1.0',
-    'Content-Type: text/html; charset=UTF-8',
-    'Content-Transfer-Encoding: 7bit',
-    '',
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject,
     html,
-  ].join('\r\n');
-
-  await ses.send(
-    new SendRawEmailCommand({
-      RawMessage: { Data: Buffer.from(rawMessage) },
-    })
-  );
+  });
 }
 
 async function sendNotificationWithIcs({ to, from, subject, body, icsContent }) {
-  const boundary = `----=_Part_${Date.now()}`;
-  const icsBase64 = Buffer.from(icsContent).toString('base64');
-
-  const rawMessage = [
-    `From: Q-Atelier <${from}>`,
-    `To: ${to}`,
-    `Subject: =?UTF-8?B?${Buffer.from(subject).toString('base64')}?=`,
-    'MIME-Version: 1.0',
-    `Content-Type: multipart/mixed; boundary="${boundary}"`,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/plain; charset=UTF-8',
-    'Content-Transfer-Encoding: 7bit',
-    '',
-    body,
-    '',
-    `--${boundary}`,
-    'Content-Type: text/calendar; charset=UTF-8; method=REQUEST',
-    'Content-Transfer-Encoding: base64',
-    'Content-Disposition: attachment; filename="afspraak.ics"',
-    '',
-    icsBase64,
-    '',
-    `--${boundary}--`,
-  ].join('\r\n');
-
-  await ses.send(
-    new SendRawEmailCommand({
-      RawMessage: { Data: Buffer.from(rawMessage) },
-    })
-  );
+  await resend.emails.send({
+    from: FROM,
+    to,
+    subject,
+    text: body,
+    attachments: [
+      {
+        filename: 'afspraak.ics',
+        content: Buffer.from(icsContent).toString('base64'),
+        contentType: 'text/calendar; method=REQUEST',
+      },
+    ],
+  });
 }
 
 module.exports = { sendBookingEmail, sendPlainEmail, sendHtmlEmail, sendNotificationWithIcs };
