@@ -113,8 +113,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 ### What's working
 - [x] GET /slots returns monthly availability from DynamoDB
 - [x] POST /booking creates bookings with double-booking prevention
-- [x] SES sends confirmation email with .ics calendar invite
-- [x] SNS sends SMS alert to de eigenaar
+- [x] Email sends confirmation with .ics calendar invite (SES initially, later migrated to Resend)
 - [x] Frontend calendar loads slots and allows booking
 - [x] Frontend deployed to S3
 
@@ -150,10 +149,10 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - All booking logic preserved unchanged
 - Deployed to S3 + CloudFront cache invalidated
 
-### SES status
+### SES status (legacy — later replaced by Resend)
 - Domain `q-atelier.nl` verified via DKIM in SES
-- SES production access requested — awaiting AWS approval
-- Until approved, email sending limited to verified addresses only (sandbox mode)
+- SES production access requested — rejected by AWS
+- Migrated to Resend in Phase 5
 
 ### DNS status
 - CloudFront test URL: `dyshhxdimbjli.cloudfront.net` — live and serving the new design
@@ -166,7 +165,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 ### Booking flow change
 - Bookings now created with status `PENDING` instead of auto-confirmed
 - De eigenaar ontvangt email with customer details + 3 action links (accept/reschedule/reject)
-- De eigenaar ontvangt SMS notification to check email
+- De eigenaar ontvangt email notification
 - Customer receives "aanvraag ontvangen" email, no .ics yet
 
 ### New Lambda endpoints
@@ -269,13 +268,15 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 - Lambda redeployed with updated code
 - GitHub Actions deploy.yml updated with `--exclude "video/*"`
 
-### SNS SMS sandbox
+### SNS SMS (removed)
 - Phone number verified in SNS sandbox
-- SMS quota increase requested
-- Sandbox exit support case submitted — awaiting AWS approval
+- SMS quota increase requested, sandbox exit support case submitted
+- AWS never approved sandbox exit — feature dropped
+- SMS notifications removed from the project
 
-### SES production access
-- Support case replied to with additional info — awaiting AWS approval
+### SES production access (rejected)
+- Support case submitted and replied to with additional info
+- AWS rejected SES production access — migrated to Resend
 
 ---
 
@@ -331,7 +332,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 | Frontend | Vanilla HTML/CSS/JS | No build tooling for a simple site |
 | Calendar invites | `.ics` iCalendar format | Native on iPhone, Android, Gmail, Outlook |
 | Email sender | Resend (was SES) | Simple API, free tier, no sandbox limitations |
-| SMS | SNS | Simple, free tier sufficient |
+| SMS | Removed (was SNS) | Sandbox never approved, feature dropped |
 | CI/CD | GitHub Actions | Free, Terraform plan on PR / apply on merge |
 
 ---
@@ -339,4 +340,4 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 ## Costs so far
 
 AWS free tier — all resources within limits. Expected ongoing cost: ~€0/month.
-ACM, SES identities, SNS subscriptions: free.
+ACM: free. Resend: free tier (3,000 emails/month).

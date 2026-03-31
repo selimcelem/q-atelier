@@ -15,7 +15,7 @@ for the developer (AWS SAA-C03 candidate, career switching from BIM to Cloud Eng
 - API: API Gateway + Lambda (Node.js 20) — DEPLOYED
 - Database: DynamoDB — DEPLOYED
 - Email: Resend with .ics attachment — DEPLOYED
-- SMS: SNS — DEPLOYED
+- SMS: removed (SNS sandbox never approved)
 - Frontend: Vanilla HTML/CSS/JS (no build tooling)
 - Language: Dutch (nl)
 
@@ -29,7 +29,6 @@ for the developer (AWS SAA-C03 candidate, career switching from BIM to Cloud Eng
 - API endpoint: https://apqc7wkzj6.execute-api.eu-west-1.amazonaws.com/prod
 - Lambda: q-atelier-booking (GET /slots + POST /booking fully implemented)
 - Email: Resend (from info@q-atelier.nl, RESEND_API_KEY in Lambda env)
-- SNS topic: q-atelier-booking-alerts
 
 ## Business details
 
@@ -60,7 +59,7 @@ Opening hours: Ma 12:00–18:00 · Di 10:00–18:00 · Wo gesloten · Do 10:00�
 - `modules/hosting/main.tf` — S3 + CloudFront + ACM
 - `modules/api/main.tf` — API Gateway + Lambda
 - `modules/database/main.tf` — DynamoDB
-- `modules/notifications/main.tf` — SES + SNS
+- `modules/notifications/main.tf` — SES identity + SNS (legacy, email now via Resend)
 - `lambda/booking/index.js` — Lambda handler
 - `lambda/booking/ics.js` — .ics generator
 - `lambda/booking/email.js` — Resend email helper

@@ -11,7 +11,6 @@ Static site + booking system for q-atelier.nl, built on AWS with Terraform.
 | Lambda | `q-atelier-booking` (Node.js 20) | Deployed |
 | Database | DynamoDB `q-atelier-bookings` | Deployed |
 | Email | Resend (from info@q-atelier.nl) | Deployed |
-| SMS | SNS booking alerts | Deployed (sandbox exit pending AWS approval) |
 | CDN | CloudFront + ACM SSL | Deployed (test: dyshhxdimbjli.cloudfront.net — DNS cutover pending) |
 
 ## Architecture
@@ -20,7 +19,6 @@ Static site + booking system for q-atelier.nl, built on AWS with Terraform.
 Browser → CloudFront → S3 static site
 Browser → API Gateway → Lambda → DynamoDB
                               → Resend (email + .ics)
-                              → SNS (SMS)
 ```
 
 ## API Endpoints
@@ -40,7 +38,7 @@ Each date maps slot times to `"available"` or `"booked"`. Closed days (Wed, Sun)
 }
 ```
 Returns 200 on success, 409 if slot taken, 400 on validation error.
-De eigenaar receives HTML email with accept/reschedule/reject buttons + SMS.
+De eigenaar receives HTML email with accept/reschedule/reject buttons.
 
 **GET** `/action?token=TOKEN&action=accept|reject` — De eigenaar accepts or rejects a booking from email.
 
@@ -77,16 +75,13 @@ These resources must exist (created by Terraform):
 - DynamoDB table: `q-atelier-bookings` (with `month-index` and `token-index` GSIs)
 - API Gateway: `q-atelier-api` (stage: `prod`)
 - Lambda function: `q-atelier-booking`
-- SNS topic: `q-atelier-booking-alerts`
 
 ## Lambda Environment Variables
 
 | Variable | Description |
 |----------|-------------|
 | `BOOKINGS_TABLE` | DynamoDB table name (`q-atelier-bookings`) |
-| `SNS_TOPIC_ARN` | SNS topic ARN for SMS alerts |
 | `SIBEL_EMAIL` | Owner's email for notifications |
-| `FROM_EMAIL` | Sender email (legacy, not used by Resend) |
 | `RESEND_API_KEY` | Resend API key for sending emails |
 
 ## Setup
@@ -136,7 +131,7 @@ aws lambda update-function-code \
 ```bash
 aws lambda update-function-configuration \
   --function-name q-atelier-booking \
-  --environment "Variables={BOOKINGS_TABLE=q-atelier-bookings,SNS_TOPIC_ARN=arn:aws:sns:eu-west-1:ACCOUNT_ID:q-atelier-booking-alerts,SIBEL_EMAIL=owner@email.com,FROM_EMAIL=from@email.com,RESEND_API_KEY=re_xxx}" \
+  --environment "Variables={BOOKINGS_TABLE=q-atelier-bookings,SIBEL_EMAIL=owner@email.com,RESEND_API_KEY=re_xxx}" \
   --region eu-west-1
 ```
 

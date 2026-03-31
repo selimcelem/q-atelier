@@ -32,7 +32,7 @@ Status: In progress
 - Fills in form (naam, email, telefoon, service)
 - Auto-confirmed immediately
 - Customer gets .ics + confirmation email
-- De eigenaar gets SMS + email
+- De eigenaar gets email
 
 ### Required (Phase 3 — to build)
 Manual confirmation flow — de eigenaar reviews each booking request before it is confirmed.
@@ -44,9 +44,7 @@ Customer fills in booking form on website.
 
 DynamoDB status written as: `PENDING`
 
-De eigenaar receives:
-- SMS: "Nieuwe afspraak aanvraag: [naam] op [datum] om [tijdstip] voor [service]. Check je mail."
-- Email with:
+De eigenaar receives email with:
   - Customer details (naam, email, telefoon, datum, tijdstip, service)
   - Three action buttons:
 

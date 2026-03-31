@@ -56,20 +56,10 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 
 ---
 
-## Booking — SMS (SNS)
-- [~] Fix SNS SMS — 21/21 messages failed in eu-west-1
-  - [x] Phone number verified in SNS sandbox
-  - [x] SMS quota increase requested
-  - [x] Sandbox exit support case submitted
-  - [ ] Awaiting AWS approval for sandbox exit
-- [ ] Decision: keep SNS SMS or replace with Twilio
-
----
-
-## SES — Production Access
-- [~] SES production access request (legacy — may no longer be needed since migrated to Resend)
-  - [x] Support case replied to with additional info
-  - [ ] Awaiting AWS approval
+## Email & SMS — History
+- [x] SES production access requested — rejected by AWS
+- [x] Migrated email sending from SES to Resend
+- [x] SMS (SNS) feature removed — sandbox never approved, not worth pursuing
 
 ---
 
@@ -86,11 +76,6 @@ Legend: [ ] todo · [x] done · [~] in progress · [!] blocked
 ## DNS & Go-live
 - [ ] DNS cutover from JouwWeb to CloudFront (pending de eigenaar approval)
 - [ ] Git history cleanup before repo goes public
-
----
-
-## Infrastructure
-- [~] SNS SMS: sandbox exit pending (see above)
 
 ---
 

@@ -26,7 +26,6 @@ This is also a portfolio project for Selim (career switcher: BIM Engineering →
 | P1 | Booking calendar with available/unavailable slots |
 | P1 | Email confirmation to customer + de eigenaar on booking |
 | P1 | `.ics` calendar attachment (works on iPhone + Android + Gmail) |
-| P2 | SNS SMS ping to de eigenaar's phone on new booking |
 | P2 | Google Business Profile setup + structured data (JSON-LD) |
 | P2 | Google Search Console + sitemap submission |
 | P3 | Admin panel for de eigenaar to block/open dates |
@@ -54,10 +53,6 @@ S3 (static site)   API Gateway
               ▼                ▼
           DynamoDB          Resend
       (booked slots)   (sends .ics to customer + de eigenaar)
-                             │
-                             ▼
-                           SNS
-                    (SMS to de eigenaar's phone)
 ```
 
 **Domain:** q-atelier.nl is kept on existing registrar (Vimexx). DNS A/CNAME records are pointed at CloudFront. Route 53 is NOT used — it adds €0.50/month with no SEO benefit.
@@ -77,7 +72,6 @@ S3 (static site)   API Gateway
 | Lambda | 1M invocations/month | €0 |
 | DynamoDB | 25GB, 25 WCU/RCU | €0 |
 | Resend | 3,000 emails/month (free tier) | €0 |
-| SNS | 1M publishes | €0 |
 | **Total** | | **~€0/month** |
 
 Free tier is more than sufficient for a local atelier with ~50-100 bookings/month.
@@ -103,7 +97,7 @@ q-atelier/
 │   ├── hosting/              ← S3 + CloudFront + ACM
 │   ├── api/                  ← API Gateway + Lambda
 │   ├── database/             ← DynamoDB
-│   └── notifications/        ← SES + SNS
+│   └── notifications/        ← SES identity + SNS (legacy)
 ├── main.tf                   ← root module, wires everything together
 ├── variables.tf
 ├── outputs.tf
@@ -126,7 +120,7 @@ q-atelier/
 | Frontend | Vanilla HTML/CSS/JS | No build tooling overhead for a simple site |
 | Calendar invites | `.ics` (iCalendar) | Native support on iPhone, Android, Gmail, Outlook |
 | Email | Resend | Simple API, free tier, no SES sandbox limitations |
-| SMS | SNS | Simple, free tier sufficient |
+| SMS | Removed (was SNS) | AWS sandbox never approved, feature dropped |
 | DNS | Existing registrar (Vimexx) | Free, Route 53 has no SEO benefit |
 | CI/CD | GitHub Actions | Free, integrates with Terraform Cloud or direct AWS |
 
@@ -152,7 +146,6 @@ Site content is Dutch only. All copy is written for a local Dutch audience (Zeis
 - Deploy API module (API Gateway + Lambda + DynamoDB)
 - Implement GET /slots and POST /booking endpoints
 - Wire up email confirmation to customer with .ics attachment
-- Wire up SNS for de eigenaar SMS notification
 - Manual confirmation flow (accept / reschedule / reject)
 
 ### Phase 3 — SEO & Polish (pending)
@@ -190,7 +183,7 @@ This project demonstrates the following AWS SAA-C03 domains in production:
 - API Gateway REST API + Lambda proxy integration
 - DynamoDB table design (partition key: date, sort key: time slot)
 - SES domain identity + DKIM/SPF (legacy, migrated to Resend)
-- SNS topic + SMS subscription
+- Resend email API integration with .ics attachments
 - IAM roles with least-privilege policies per Lambda function
 - Terraform remote state (S3 + DynamoDB locking)
 - GitHub Actions CI/CD pipeline for Terraform
