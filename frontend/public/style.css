@@ -863,7 +863,7 @@ footer {
 }
 
 /* ── Lightbox (dialog) ──────────────────────────────────── */
-dialog.lightbox {
+dialog.lightbox[open] {
   position: fixed;
   inset: 0;
   width: 100vw;
@@ -887,8 +887,8 @@ dialog.lightbox::backdrop {
 
 dialog.lightbox img {
   display: block;
-  max-width: 100%;
-  max-height: 100%;
+  max-width: calc(100vw - 4rem);
+  max-height: calc(100vh - 4rem);
   object-fit: contain;
   border-radius: 8px;
 }
@@ -949,7 +949,8 @@ dialog.lightbox .lightbox-close {
   .page-section { padding: 3rem 1.5rem; }
   .photo-grid { grid-template-columns: 1fr; gap: 0.75rem; }
   .photo-grid img { height: 220px; }
-  dialog.lightbox { padding: 1rem; }
+  dialog.lightbox[open] { padding: 1rem; }
+  dialog.lightbox img { max-width: calc(100vw - 2rem); max-height: calc(100vh - 2rem); }
   dialog.lightbox .lightbox-close { top: 0.5rem; right: 0.5rem; }
 }
 
