@@ -1,333 +1,215 @@
 # Build Log — Q-Atelier
 
-Running log of everything done, what worked, what failed, and why.
+Running log of everything built, what worked, what failed, and why.
 
 ---
 
-## 2026-03-29
+## Phase 1 — Foundation (2026-03-29)
 
 ### Bootstrap — Terraform remote state
-- Created `bootstrap/main.tf` with S3 bucket + DynamoDB lock table
+- Created S3 bucket + DynamoDB lock table for Terraform state backend
 - Ran `terraform init && terraform apply` from `bootstrap/` locally
-- **Result:** S3 bucket `q-atelier-terraform-state` and DynamoDB table `q-atelier-terraform-lock` created successfully in `eu-west-1`
-- Filled in `main.tf` backend block with output values
-
----
+- Backend connected successfully, all 4 modules loaded
 
 ### Repo setup
-- Created `D:\Projects\q-atelier` with full scaffold
-- Initialized git, pushed to `https://github.com/selimcelem/q-atelier` (private)
+- Initialized git repo with full scaffold
+- Pushed to GitHub (private)
 - Switched from SSH to HTTPS remote (SSH key not configured on this machine)
-- CRLF warnings on Windows are harmless, ignored
 
----
-
-### Terraform init (root)
-- Ran `terraform init` from project root
-- S3 backend connected successfully
-- All 4 modules loaded: `hosting`, `api`, `database`, `notifications`
-- Providers installed: `hashicorp/aws v5.100.0`, `hashicorp/archive v2.7.1`
-- Lock file `.terraform.lock.hcl` committed to repo
-
----
-
-### GitHub Actions setup
+### GitHub Actions CI/CD
 - Workflow at `.github/workflows/deploy.yml`
-- Added secrets to repo: `AWS_ACCESS_KEY_ID`, `AWS_SECRET_ACCESS_KEY`, `TF_VAR_DOMAIN_NAME`, `TF_VAR_SIBEL_EMAIL`, `TF_VAR_SIBEL_PHONE`, `TF_VAR_SES_FROM_EMAIL`
-- Note: `SITE_BUCKET_NAME` and `CLOUDFRONT_DISTRIBUTION_ID` cannot be added yet — only known after first successful `terraform apply`
+- Terraform plan on PR, apply on merge to main
+- Added AWS credentials and Terraform variables as GitHub Secrets
 
----
+### GitHub Actions — failed runs (learning log)
 
-### GitHub Actions — failed runs
+| Run | Failure | Root Cause | Fix |
+|-----|---------|------------|-----|
+| #1 | Configure AWS credentials | Secrets not yet added to repo | Added all secrets |
+| #2 | Terraform Init | Variable blocks used invalid single-line syntax | Rewrote as multi-line blocks |
+| #3 | Terraform Format Check | `main.tf` not canonically formatted | Ran `terraform fmt -recursive` |
+| #4 | Terraform Apply | `InvalidViewerCertificate` — ACM cert pending DNS validation | Blocked: waiting on DNS access |
 
-**Run #1 — "feat: initial project scaffold"**
-- Failed at: Configure AWS credentials
-- Reason: Secrets not yet added to repo
-- Fix: Added all 6 secrets
+### Blocked on DNS validation
+- ACM certificate created in us-east-1 (required by CloudFront)
+- DNS validation CNAMEs needed at domain registrar
+- Blocked until registrar access provided by client
 
-**Run #2 — same commit, re-run**
-- Failed at: Terraform Init
-- Reason: Variable blocks in `modules/api/main.tf` and `modules/notifications/main.tf` used invalid single-line syntax `{ type = string, sensitive = true }`
-- Fix: Rewrote as multi-line blocks
-
-**Run #3 — "fix: variable block syntax"**
-- Failed at: Terraform Format Check
-- Reason: `main.tf` not formatted to Terraform canonical style
-- Fix: Ran `terraform fmt -recursive` locally
-
-**Run #4 — "fix: terraform fmt"**
-- Failed at: Terraform Apply
-- Reason: CloudFront distribution failed with `InvalidViewerCertificate`
-- Root cause: ACM certificate exists in `us-east-1` but DNS validation CNAMEs have not been added to the domain registrar yet. CloudFront refuses to use an unvalidated cert.
-- Status: **BLOCKED — waiting on de eigenaar's registrar info**
-
----
-
-## Blocked — waiting on de eigenaar
-
-Cannot proceed with CloudFront deployment until:
-- [ ] De eigenaar confirms the domain registrar (TransIP / Hostnet / Mijndomein / other)
-- [ ] Login credentials provided
-- [ ] We add the ACM DNS validation CNAME records to her domain
-- [ ] Cert shows "Issued" in AWS Certificate Manager (us-east-1)
-
-Checklist sent to de eigenaar via WhatsApp as interactive HTML form.
-
----
-
-## What's already deployed in AWS (partial apply)
-
-Despite the CloudFront failure, earlier resources were created successfully:
-- S3 bucket: `q-atelier-site` (private, versioning enabled)
-- DynamoDB table: `q-atelier-bookings` (PAY_PER_REQUEST, TTL enabled)
-- API Gateway: `q-atelier-api`
-- API Gateway Stage: `prod`
-- Lambda function: `q-atelier-booking` (stub — not yet implemented)
-- SES email identities: verification emails sent to `q.atelier89@gmail.com`
-- SNS topic: `q-atelier-booking-alerts`
-- SNS SMS subscription: de eigenaar's phone number
-- IAM role: `q-atelier-lambda-role` with least-privilege policy
-- ACM certificate: created in `us-east-1`, **pending DNS validation**
-
-CloudFront distribution: **not yet created** (blocked on cert validation)
+### Partial deployment (before CloudFront)
+Resources created successfully despite CloudFront failure:
+- S3 bucket (private, versioning enabled)
+- DynamoDB table (PAY_PER_REQUEST, TTL enabled)
+- API Gateway + Lambda (stub)
+- SES email identities (initial approach, later replaced)
+- IAM role with least-privilege policy
+- ACM certificate (pending validation)
 
 ---
 
 ## Phase 2 — Lambda + Frontend (2026-03-29)
 
 ### Lambda implementation
-- Implemented `GET /slots` — queries DynamoDB `month-index` GSI, generates full month availability map (Mon–Sat, 6 slots/day), marks booked vs available
-- Implemented `POST /booking` — validates all fields, checks date not in past, not Sunday, valid slot; conditional DynamoDB write prevents double-booking (409 on conflict)
-- Created `lambda/booking/ics.js` — generates iCalendar (.ics) with ORGANIZER, ATTENDEE, location, 60-min duration
-- Created `lambda/booking/email.js` — sends raw MIME email via SES with .ics attachment (text/calendar; method=REQUEST), BCC to de eigenaar
-- SNS SMS notification to de eigenaar on each booking: "Nieuwe afspraak: [name] op [date] om [time_slot] voor [service]"
-- **Deployed** Lambda via `aws lambda update-function-code`
+- `GET /slots` — queries DynamoDB GSI, generates full month availability map, marks booked vs available
+- `POST /booking` — validates fields, checks date not in past, conditional DynamoDB write prevents double-booking (409 on conflict)
+- `.ics` generator — iCalendar format with ORGANIZER, ATTENDEE, location, 60-min duration
+- Email module — sends MIME email with .ics attachment (text/calendar; method=REQUEST)
+- Deployed via `aws lambda update-function-code`
 
 ### Frontend
-- Rebuilt `index.html` as full single-page site: header, hero, services (3 cards), booking calendar, contact, footer
-- Created `style.css` — warm bridal design (cream/blush/gold palette, Playfair Display + Inter fonts, responsive)
-- Created `main.js` — interactive calendar with month navigation, date/slot picker, booking form with loading states and error handling
-- Set `window.API_ENDPOINT` from `terraform output api_endpoint`
-- **Deployed** to S3 via `aws s3 sync` (HTML with no-cache, assets with 1-year cache)
-
-### What's working
-- [x] GET /slots returns monthly availability from DynamoDB
-- [x] POST /booking creates bookings with double-booking prevention
-- [x] Email sends confirmation with .ics calendar invite (SES initially, later migrated to Resend)
-- [x] Frontend calendar loads slots and allows booking
-- [x] Frontend deployed to S3
+- Single-page site: header, hero, services (3 cards), booking calendar, contact, footer
+- Warm bridal design: cream/blush/gold palette, Playfair Display + Inter fonts, responsive
+- Interactive calendar with month navigation, date/slot picker, booking form with loading states
+- Deployed to S3 via `aws s3 sync` (HTML with no-cache, assets with 1-year cache)
 
 ---
 
 ## Phase 3 — SSL, CloudFront & Redesign (2026-03-29)
 
 ### ACM certificate validated
-- De eigenaar's domain registrar is Vimexx
-- Added ACM DNS validation CNAME records to Vimexx DNS panel
-- Certificate status changed to "Issued" in AWS Certificate Manager (us-east-1)
+- Client's domain registrar identified (Vimexx)
+- Added ACM DNS validation CNAME records
+- Certificate status: Issued
 
 ### CloudFront deployed with SSL
-- CloudFront distribution `E2LJC4OK76HPZO` deployed with real ACM certificate
-- Domain aliases configured for `q-atelier.nl` and `www.q-atelier.nl`
-- Temporary test URL: `dyshhxdimbjli.cloudfront.net`
+- Distribution deployed with real ACM certificate
+- Domain aliases configured for q-atelier.nl and www.q-atelier.nl
 - CI/CD fully green — both Terraform and frontend deploy pipelines passing
 
-### Frontend redesign — first attempt (Unsplash images)
-- Redesigned with Unsplash background images for hero, service cards, and about section
-- **Failed** — Unsplash URLs don't load reliably through CloudFront, broken layout
-- Reverted approach
+### Frontend redesign attempts
 
-### Frontend redesign — second attempt (CSS only)
-- Complete CSS-only redesign of `index.html` and `style.css` — no external images
+**Attempt 1 — Unsplash images:** Failed. External image URLs don't load reliably through CloudFront. Reverted.
+
+**Attempt 2 — CSS-only redesign:** Success.
 - Typography: Cormorant Garamond (italic serif headlines) + Jost (clean sans body)
-- Palette: deep ivory (#FAF8F5), dusty rose (#C9A99A), champagne gold (#B8973E), charcoal (#2C2623)
-- Hero: full-viewport warm cream with decorative CSS borders and dusty rose CTA button
-- Intro strip: 3 elegant columns (Persoonlijke begeleiding / Vakkundige pasvorm / Bruidsjurk specialist)
-- Service cards: dusty rose top border accent, italic serif headings, CSS-only decorative
-- "Over ons" section: text-only, pull quote in Cormorant Garamond italic, decorative dividers
-- Calendar restyled — dusty rose selection, faded booked dates, cream available dates
-- All booking logic preserved unchanged
-- Deployed to S3 + CloudFront cache invalidated
+- Palette: deep ivory, dusty rose, champagne gold, charcoal
+- Hero: full-viewport warm cream with decorative CSS borders
+- Service cards: dusty rose top border accent, italic serif headings
+- Calendar restyled to match palette
 
-### SES status (legacy — later replaced by Resend)
-- Domain `q-atelier.nl` verified via DKIM in SES
-- SES production access requested — rejected by AWS
-- Migrated to Resend in Phase 5
-
-### DNS status
-- CloudFront test URL: `dyshhxdimbjli.cloudfront.net` — live and serving the new design
-- JouwWeb still live on `q-atelier.nl` — DNS cutover NOT done yet, waiting for de eigenaar approval
+### SES status (later replaced by Resend)
+- Domain verified via DKIM in SES
+- **SES production access requested — rejected by AWS**
+- This forced the migration to Resend (see Phase 5)
 
 ---
 
-## Phase 3 — Manual Booking Confirmation Flow (2026-03-30)
+## Phase 3b — Manual Booking Confirmation Flow (2026-03-30)
 
-### Booking flow change
+### Architecture change
 - Bookings now created with status `PENDING` instead of auto-confirmed
-- De eigenaar ontvangt email with customer details + 3 action links (accept/reschedule/reject)
-- De eigenaar ontvangt email notification
-- Customer receives "aanvraag ontvangen" email, no .ics yet
+- Owner receives HTML email with accept/reschedule/reject action buttons
+- Customer receives "request received" email (no .ics yet)
 
 ### New Lambda endpoints
-- `GET /action?token=TOKEN&action=accept|reject` — de eigenaar accepts or rejects from email
-- `GET /reschedule?token=TOKEN` — de eigenaar sees date/time picker form
-- `POST /reschedule` — de eigenaar submits new proposed date/time
-- `GET /respond?token=CUSTOMER_TOKEN&action=accept|reject` — Customer responds to reschedule proposal
+- `GET /action` — owner accepts or rejects from email
+- `GET /reschedule` — owner sees date/time picker form
+- `POST /reschedule` — owner submits new proposed date/time
+- `GET /respond` — customer responds to reschedule proposal
 
 ### Token-based security
 - UUID token generated per booking, stored in DynamoDB
-- Tokens expire after 7 days
-- Single-use: once accept/reject is clicked, status changes and token can't be reused
-- `token-index` GSI added to DynamoDB for efficient token lookups
-
-### DynamoDB schema additions
-- New fields: `status`, `token`, `token_expires_at`, `suggested_date`, `suggested_time_slot`, `customer_token`
-- New GSI: `token-index` (hash key: `token`, projection: ALL)
-
-### API Gateway additions
-- 4 new routes: GET /action, GET /reschedule, POST /reschedule, GET /respond
-- CORS OPTIONS for POST /reschedule
-- All routes proxied to same Lambda function
-
-### Frontend update
-- Success message changed to: "Bedankt voor uw aanvraag! Wij bevestigen uw afspraak zo snel mogelijk per e-mail."
-
-### Dependencies
-- Added `uuid` package to Lambda for token generation
+- 7-day expiry, single-use (status change invalidates the token)
+- `token-index` GSI for efficient token lookups
 
 ### Bug fixes (2026-03-30)
-- Fixed API Gateway "Missing Authentication Token" — added `triggers` block to force new deployment
-- De eigenaar notification email now uses HTML with styled action buttons (green/blue/red)
-- Removed BCC to de eigenaar on customer confirmation emails (was causing duplicate emails)
+- Fixed API Gateway "Missing Authentication Token" — added `triggers` block for redeployment
+- Owner notification email: HTML with styled action buttons (green/blue/red)
+- Removed BCC to owner on customer confirmations (was causing duplicates)
 - Pure CSS hamburger menu for mobile nav (replaced broken JS toggle)
-- Fixed POST /booking: cancelled slots now rebookable (`attribute_not_exists OR status=CANCELLED`)
-- Fixed /respond endpoint: added `dynamodb:Scan` to Lambda IAM policy
-- Fixed /respond accept: creates new DynamoDB item at suggested date/time (partition key immutable)
-- De eigenaar now receives .ics attachment on accept (both direct accept and reschedule accept)
-- All email dates now use dd/mm/yyyy format
-- Lambda deploy added to GitHub Actions CI/CD pipeline
+- Cancelled slots now rebookable (conditional expression: `attribute_not_exists OR status=CANCELLED`)
+- Fixed `/respond` endpoint: added `dynamodb:Scan` to Lambda IAM policy
+- Fixed `/respond` accept: creates new DynamoDB item at suggested date (partition key immutable)
+- Owner receives .ics attachment on accept (both direct and reschedule)
+- All email dates normalized to dd/mm/yyyy format
+- Lambda deploy step added to GitHub Actions pipeline
 
 ---
 
-## Phase 4 — Branding, Redesign, Subpages, Availability, Video (2026-03-30)
+## Phase 4 — Branding, Redesign, Subpages, Availability (2026-03-30)
 
 ### Privacy cleanup
-- Replaced owner name with "de eigenaar" across all repo files (CLAUDE.md, BUILD_LOG.md, PROJECT_BRIEF.md, lambda email text, frontend)
-- Variable names (SIBEL_EMAIL etc.) and Terraform resource names left unchanged
-
-### Branding
-- Standardised brand name to "Q-Atelier" everywhere (frontend, emails, Lambda HTML pages)
-- Replaced "Q — Atelier" (with em dash/spaces) and "Q-atelier" variants
+- Replaced owner's personal name with role references across all files
+- Variable names (environment config) left unchanged for backwards compatibility
 
 ### Color palette redesign
-- New warm blush palette inspired by damore.nl
-- Background: #FDFAF7, accent: #D4A5A5 / #C68B8B, text: #3D2B2B
+- Warm blush palette: background #FDFAF7, accent #D4A5A5 / #C68B8B, text #3D2B2B
 - Hero background: #F9F0F0, card background: #FBF5F5
-- Typography: Cormorant Garamond (italic serif headlines) + Jost (clean sans body)
-- Updated all CSS variables and color references
 
 ### Hero video background
-- Fullscreen background video (`video/hero.mp4`) served from CloudFront
-- Semi-transparent overlay (rgba(0,0,0,0.4)) for text readability
-- White text and CTA button over video with z-index layering
+- Fullscreen background video with semi-transparent overlay for text readability
+- White text and CTA button with z-index layering
 - Fallback cream background if video fails to load
-- S3 deploy commands updated with `--exclude "video/*"` to prevent deletion
+- S3 deploy commands updated with `--exclude "video/*"`
 
 ### Calendar & availability updates
-- Day-specific availability slots:
-  - Ma: 12:00–17:00 (6 slots), Di/Do/Vr: 10:00–17:00 (7 slots), Za: 12:00–17:00 (6 slots)
-  - Wo + Zo: gesloten (no slots)
-- Past time slots on today greyed out using Amsterdam timezone (Europe/Amsterdam)
-- Wednesday now shown as closed day alongside Sunday
+- Day-specific availability slots (Mon/Sat: 6 slots, Tue/Thu/Fri: 7 slots, Wed/Sun: closed)
+- Past time slots greyed out using Amsterdam timezone (`Europe/Amsterdam`)
 - Opening hours added to contact section
 
 ### Contact section icons
-- WhatsApp SVG icon (green #25D366) before WhatsApp link
-- Instagram SVG icon before Instagram link
-- Google Maps pin icon before address, linking to Google Maps
+- WhatsApp SVG icon (#25D366), Instagram SVG icon, Google Maps pin icon
+- All 20x20px, vertically aligned with text
 
 ### Email bug fix (reschedule accept)
-- De eigenaar now receives a notification email instead of a copy of the customer confirmation
-- Subject: "[naam] heeft uw voorgestelde datum geaccepteerd"
-- Body includes confirmed date, time, service + .ics attachment
-- Added `sendNotificationWithIcs` to email.js
+- Owner now receives notification email instead of copy of customer confirmation
+- Includes confirmed date, time, service + .ics attachment
 
 ### New subpages
-- `diensten.html` — full pricing tables with inline-styled two-column layout (bruidsjurken, galajurken, broeken, jassen, overige, woningtextiel)
-- `over-ons.html` — brand story (Wie zijn wij, Onze werkwijze, Waarom Q-Atelier), reviews placeholder
-- Navigation updated: Diensten → diensten.html, Over ons → over-ons.html
-
-### Frontend fixes
-- Service dropdown updated: removed "Maatwerk op aanvraag", added "Bruidsjurken — vermaak", "Galajurken — vermaak", "Gordijnen inkorten"
-- "Bekijk onze diensten" CTA button added to Diensten section on homepage
-- "Meer over ons" CTA button added to Over ons section on homepage
-- Pricing tables rewritten with inline styles for guaranteed PRIJS column right-alignment
-
-### Deployment
-- Frontend synced to S3, CloudFront cache invalidated
-- Lambda redeployed with updated code
-- GitHub Actions deploy.yml updated with `--exclude "video/*"`
+- `diensten.html` — full pricing tables (bruidsjurken, galajurken, broeken, jassen, overige, woningtextiel)
+- `over-ons.html` — brand story, client reviews placeholder
+- Navigation updated across all pages
 
 ### SNS SMS (removed)
 - Phone number verified in SNS sandbox
-- SMS quota increase requested, sandbox exit support case submitted
-- AWS never approved sandbox exit — feature dropped
-- SMS notifications removed from the project
+- SMS quota increase requested, sandbox exit case submitted
+- AWS never approved sandbox exit — feature dropped entirely
 
 ### SES production access (rejected)
-- Support case submitted and replied to with additional info
-- AWS rejected SES production access — migrated to Resend
+- Support case submitted with additional info
+- AWS rejected production access — migrated to Resend
 
 ---
 
 ## Phase 5 — Polish, Email Migration, Photos (2026-03-31)
 
 ### SVG ring divider
-- Added inline SVG decorative ring divider between hero and intro sections
-- Positioned with CSS z-index layering for overlap effect
+- Inline SVG decorative ring divider between hero and intro sections
+- CSS z-index layering for overlap effect with blend modes
 
 ### Email migration: SES → Resend
-- SES sandbox limitations blocking production email delivery
-- Installed `resend` npm package in Lambda
-- Rewrote `lambda/booking/email.js` to use Resend SDK instead of SES raw email
-- All 4 email functions preserved (sendBookingEmail, sendPlainEmail, sendHtmlEmail, sendNotificationWithIcs)
-- .ics attachments work via Resend's `attachments` array
-- Emails sent from `Q-Atelier <info@q-atelier.nl>` (requires Resend domain verification)
-- Added `RESEND_API_KEY` Lambda environment variable
+- SES sandbox limitations blocking production delivery
+- Installed `resend` npm package, rewrote email module
+- All email functions preserved (booking, plain, HTML, notification with .ics)
+- .ics attachments via Resend's `attachments` array
+- Emails sent from `Q-Atelier <info@q-atelier.nl>` (domain verified in Resend)
 
 ### Review & About Us photos
-- Uploaded customer review screenshots to `s3://q-atelier-site/Review pictures/`
-- Uploaded atelier photos to `s3://q-atelier-site/About us/`
-- Added photo grids to `over-ons.html` (Wie zijn wij + Wat onze klanten zeggen sections)
-- Photo grid: 3-column on desktop, 1-column on mobile, rounded corners, hover effect
-- Added native `<dialog>` lightbox for clickable photo expansion
-- S3 sync commands updated with `--exclude "About us/*" --exclude "Review pictures/*"` to prevent `--delete` from removing S3-only assets
+- Customer review screenshots and atelier photos uploaded to S3
+- Photo grids on about page (3-column desktop, 1-column mobile, hover effects)
+- Native `<dialog>` lightbox for clickable photo expansion
+- S3 sync commands updated with folder excludes to prevent deletion of S3-only assets
 
-### Repo audit & cleanup
-- Replaced owner's personal name with "de eigenaar" across all docs and Terraform comments
-- Updated PROJECT_BRIEF.md to English only (was mixed Dutch/English)
-- Updated README.md with Resend, environment variables, full deploy commands
-- Updated CLAUDE.md with current email provider, opening hours, slot config
+### Scroll animations
+- Intersection Observer-based scroll animations on all pages
+- Fade-in and slide-up effects on section load
 
----
+### Pricing updates
+- Updated pricing across all categories (bruidsjurken, galajurken, broeken, jassen, overige, woningtextiel)
+- Jacket zipper prices corrected: korte jas €35, winterjas €40
 
-## TODO — next sessions
-
-### SEO
-- [ ] JSON-LD LocalBusiness structured data
-- [ ] Sitemap + robots.txt
-- [ ] Google Business Profile setup
-- [ ] Google Search Console submission
+### Diensten intro section
+- Added intro section with images to diensten page
+- Mobile-responsive card layout
 
 ---
 
-## Architecture decisions log
+## Architecture Decisions
 
 | Decision | Choice | Reason |
 |----------|--------|--------|
 | IaC | Terraform | Industry standard, job market, multi-cloud |
 | State backend | S3 + DynamoDB | Standard pattern, free tier |
-| DNS | Existing registrar (not Route 53) | Free, Route 53 has no SEO benefit |
+| DNS | Existing registrar (not Route 53) | Free, Route 53 adds no SEO benefit |
 | SSL cert region | us-east-1 | Required by CloudFront |
 | Frontend | Vanilla HTML/CSS/JS | No build tooling for a simple site |
 | Calendar invites | `.ics` iCalendar format | Native on iPhone, Android, Gmail, Outlook |
@@ -337,7 +219,7 @@ CloudFront distribution: **not yet created** (blocked on cert validation)
 
 ---
 
-## Costs so far
+## Costs
 
 AWS free tier — all resources within limits. Expected ongoing cost: ~€0/month.
 ACM: free. Resend: free tier (3,000 emails/month).

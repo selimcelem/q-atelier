@@ -28,3 +28,11 @@ Thumbs.db
 .vscode/
 .idea/
 *.swp
+
+# Claude Code context (not for public repo)
+CLAUDE.md
+TASKS.md
+PROJECT_BRIEF.md
+
+# Lambda deploy artifact
+lambda-booking.zip

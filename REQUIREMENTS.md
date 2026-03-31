@@ -12,16 +12,16 @@ Status: In progress
 - Reference: current site at q-atelier.nl (warm, bridal, feminine)
 - Fonts: serif display font (think Cormorant Garamond, Playfair Display) + clean body font
 - Colors: warm creams, blush pinks, champagne/gold accents, deep dusty rose
-- Photography: real photos of de eigenaar's work (to be supplied — placeholder for now)
+- Photography: real photos of the atelier's work (to be supplied — placeholder for now)
 - Feel: high-end bridal boutique, not a generic small business website
 
 ### Pages / sections
 1. Hero — full-width image, elegant headline, CTA
-2. About — short intro about de eigenaar and the atelier
+2. About — short intro about the atelier
 3. Services — Bruidsjurk vermaken, Dagelijkse kleding repareren, Maatwerk op aanvraag
-4. Portfolio — photo gallery of her work (photos to be supplied by de eigenaar)
+4. Portfolio — photo gallery of completed work (photos to be supplied by client)
 5. Booking — interactive calendar (see booking flow below)
-6. Contact — address, phone, email, Instagram, WhatsApp
+6. Contact — address, social media links, booking info
 
 ---
 
@@ -149,7 +149,7 @@ Add GSI:
 
 ### Current blocker
 ACM cert is PENDING_VALIDATION — CloudFront cannot deploy until cert is issued.
-DNS validation CNAMEs need to be added but de eigenaar wants her JouwWeb site to stay live.
+DNS validation CNAMEs need to be added but client wants the existing JouwWeb site to stay live.
 
 ### Solution
 1. Skip custom domain for now
@@ -166,11 +166,11 @@ DNS validation CNAMEs need to be added but de eigenaar wants her JouwWeb site to
 
 ---
 
-## What de eigenaar still needs to provide
-- [ ] High-res photos of her work (for portfolio + hero image)
+## What the client still needs to provide
+- [ ] High-res photos of completed work (for portfolio + hero image)
 - [ ] Confirmation of available days/hours (assumed Mon-Sat 10-16 for now)
 - [ ] Preferred appointment duration (assumed 60 min for now)
-- [ ] Any specific copy/text she wants on the site
+- [ ] Any specific copy/text for the site
 
 ---
 
