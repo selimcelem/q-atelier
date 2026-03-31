@@ -5,5 +5,7 @@ aws_region     = "eu-west-1"
 project_name   = "q-atelier"
 domain_name    = "q-atelier.nl"
 sibel_email    = "q.atelier89@gmail.com"
-sibel_phone    = "+31612345678"
 ses_from_email = "q.atelier89@gmail.com"
+
+# Note: RESEND_API_KEY is set as a Lambda environment variable directly,
+# not through Terraform. See README.md for instructions.

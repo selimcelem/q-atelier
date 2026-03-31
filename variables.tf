@@ -21,12 +21,6 @@ variable "sibel_email" {
   sensitive   = true
 }
 
-variable "sibel_phone" {
-  description = "Owner's phone number for SMS notifications (+31...)"
-  type        = string
-  sensitive   = true
-}
-
 variable "ses_from_email" {
   description = "Verified SES sender address (e.g. info@q-atelier.nl or q.atelier89@gmail.com)"
   type        = string

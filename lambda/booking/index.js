@@ -1,25 +1,22 @@
 const { DynamoDBClient, PutItemCommand, QueryCommand, UpdateItemCommand, ScanCommand } = require('@aws-sdk/client-dynamodb');
-const { SNSClient, PublishCommand } = require('@aws-sdk/client-sns');
 const { v4: uuidv4 } = require('uuid');
 const { generateICS } = require('./ics');
 const { sendBookingEmail, sendPlainEmail, sendHtmlEmail, sendNotificationWithIcs } = require('./email');
 
 const dynamo = new DynamoDBClient({});
-const sns = new SNSClient({ region: 'eu-west-1' });
 
 const TABLE = process.env.BOOKINGS_TABLE;
-const SNS_ARN = process.env.SNS_TOPIC_ARN;
 const SIBEL_EMAIL = process.env.SIBEL_EMAIL;
-const FROM_EMAIL = process.env.FROM_EMAIL;
+const FROM_EMAIL = 'info@q-atelier.nl'; // passed to email helpers but ignored (Resend uses its own FROM)
 
 // Day-specific slots: 0=Sun, 1=Mon, ..., 6=Sat
 const SLOTS_BY_DAY = {
   0: [],                                                    // Zondag: gesloten
   1: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Maandag
-  2: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Dinsdag
+  2: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Dinsdag
   3: [],                                                    // Woensdag: gesloten
-  4: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Donderdag
-  5: ['10:00', '11:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Vrijdag
+  4: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Donderdag
+  5: ['10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Vrijdag
   6: ['12:00', '13:00', '14:00', '15:00', '16:00', '17:00'], // Zaterdag
 };
 
@@ -234,12 +231,6 @@ async function createBooking(event) {
     subject: `Nieuwe afspraak aanvraag — ${name} op ${fd} om ${time_slot}`,
     html: ownerHtml,
   });
-
-  // SMS to owner
-  await sns.send(new PublishCommand({
-    TopicArn: SNS_ARN,
-    Message: `Nieuwe afspraak aanvraag: ${name} op ${fd} om ${time_slot} voor ${service}. Check je mail.`,
-  }));
 
   // Confirmation email to customer
   await sendPlainEmail({

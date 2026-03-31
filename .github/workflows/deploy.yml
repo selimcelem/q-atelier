@@ -49,7 +49,6 @@ jobs:
         env:
           TF_VAR_domain_name:    ${{ secrets.TF_VAR_DOMAIN_NAME }}
           TF_VAR_sibel_email:    ${{ secrets.TF_VAR_SIBEL_EMAIL }}
-          TF_VAR_sibel_phone:    ${{ secrets.TF_VAR_SIBEL_PHONE }}
           TF_VAR_ses_from_email: ${{ secrets.TF_VAR_SES_FROM_EMAIL }}
 
       - name: Comment Plan on PR
@@ -75,7 +74,6 @@ jobs:
         env:
           TF_VAR_domain_name:    ${{ secrets.TF_VAR_DOMAIN_NAME }}
           TF_VAR_sibel_email:    ${{ secrets.TF_VAR_SIBEL_EMAIL }}
-          TF_VAR_sibel_phone:    ${{ secrets.TF_VAR_SIBEL_PHONE }}
           TF_VAR_ses_from_email: ${{ secrets.TF_VAR_SES_FROM_EMAIL }}
 
   deploy-frontend:

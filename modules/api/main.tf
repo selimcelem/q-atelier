@@ -2,7 +2,6 @@ variable "project_name" { type = string }
 variable "bookings_table_arn" { type = string }
 variable "bookings_table_name" { type = string }
 variable "ses_topic_arn" { type = string }
-variable "sns_topic_arn" { type = string }
 variable "sibel_email" {
   type      = string
   sensitive = true
@@ -44,16 +43,10 @@ resource "aws_iam_role_policy" "lambda" {
         Resource = [var.bookings_table_arn, "${var.bookings_table_arn}/index/*"]
       },
       {
-        # SES - send emails
+        # SES - send emails (legacy, kept for fallback)
         Effect   = "Allow"
         Action   = ["ses:SendEmail", "ses:SendRawEmail"]
         Resource = "*"
-      },
-      {
-        # SNS - publish booking alerts
-        Effect   = "Allow"
-        Action   = ["sns:Publish"]
-        Resource = var.sns_topic_arn
       }
     ]
   })
@@ -78,9 +71,7 @@ resource "aws_lambda_function" "booking" {
   environment {
     variables = {
       BOOKINGS_TABLE = var.bookings_table_name
-      SNS_TOPIC_ARN  = var.sns_topic_arn
       SIBEL_EMAIL    = var.sibel_email
-      FROM_EMAIL     = var.ses_from_email
     }
   }
 }
