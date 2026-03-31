@@ -196,8 +196,7 @@ aws s3 sync frontend/public/ s3://q-atelier-site --delete \
   --cache-control "max-age=31536000" --exclude "*.html" --exclude "video/*" \
   --exclude "About us/*" --exclude "Review pictures/*"
 aws s3 sync frontend/public/ s3://q-atelier-site --delete \
-  --cache-control "no-cache" --include "*.html" --exclude "video/*" \
-  --exclude "About us/*" --exclude "Review pictures/*"
+  --cache-control "no-cache" --exclude "*" --include "*.html"
 ```
 
 Invalidate CloudFront:
