@@ -2,8 +2,8 @@
 *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
 :root {
-  --bg: #FDFAF7;
-  --bg-alt: #FBF5F5;
+  --bg: #F7F0F0;
+  --bg-alt: #F5EBEB;
   --hero-bg: #F9F0F0;
   --accent: #D4A5A5;
   --accent-deep: #C68B8B;
@@ -283,7 +283,7 @@ nav {
   content: '';
   flex: 1;
   height: 1.5px;
-  background-color: #dfc0be;
+  background-color: #c9a0a0;
 }
 
 .divider-rings {
@@ -946,6 +946,26 @@ dialog.lightbox .lightbox-close {
   cursor: pointer;
   -webkit-tap-highlight-color: transparent;
   z-index: 1;
+}
+
+/* ── Scroll Animations ──────────────────────────────────── */
+.anim-fade-up {
+  opacity: 0;
+  transform: translateY(28px);
+  transition: opacity 0.7s ease, transform 0.7s ease;
+}
+.anim-fade-up.visible {
+  opacity: 1;
+  transform: translateY(0);
+}
+.anim-stagger > * {
+  opacity: 0;
+  transform: translateY(20px);
+  transition: opacity 0.5s ease, transform 0.5s ease;
+}
+.anim-stagger > *.visible {
+  opacity: 1;
+  transform: translateY(0);
 }
 
 /* ── Responsive ──────────────────────────────────────────── */

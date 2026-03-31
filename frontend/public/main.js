@@ -265,3 +265,24 @@
 
   init();
 })();
+
+// ── Scroll animations ──────────────────────────────────────
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      const el = entry.target;
+      if (el.classList.contains('anim-stagger')) {
+        Array.from(el.children).forEach((child, i) => {
+          setTimeout(() => child.classList.add('visible'), i * 150);
+        });
+      } else {
+        el.classList.add('visible');
+      }
+      observer.unobserve(el);
+    }
+  });
+}, { threshold: 0.15 });
+
+document.querySelectorAll('.anim-fade-up, .anim-stagger').forEach(el => {
+  observer.observe(el);
+});

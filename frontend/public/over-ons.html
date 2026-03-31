@@ -30,11 +30,11 @@
 
   <main>
     <section class="page-section">
-      <h1>Over ons</h1>
-      <p class="page-intro">Bij Q-Atelier draait alles om vakmanschap, persoonlijke aandacht en liefde voor het vak.</p>
+      <h1 class="anim-fade-up">Over ons</h1>
+      <p class="page-intro anim-fade-up">Bij Q-Atelier draait alles om vakmanschap, persoonlijke aandacht en liefde voor het vak.</p>
 
       <div class="about-section">
-        <h2>Wie zijn wij</h2>
+        <h2 class="anim-fade-up">Wie zijn wij</h2>
         <p>Q-Atelier is een thuisatelier in Zeist, gespecialiseerd in het vermaken en aanpassen van bruidsjurken, galajurken en dagelijkse kleding. Met jarenlange ervaring en een scherp oog voor detail zorgen wij ervoor dat elk kledingstuk perfect past.</p>
         <p>Ons atelier is een plek waar kwaliteit en persoonlijke aandacht samenkomen. Wij geloven dat elk kledingstuk een verhaal vertelt — en wij helpen u dat verhaal perfect te maken.</p>
         <div class="photo-grid">
@@ -45,20 +45,20 @@
       </div>
 
       <div class="about-section">
-        <h2>Onze werkwijze</h2>
+        <h2 class="anim-fade-up">Onze werkwijze</h2>
         <p>Bij Q-Atelier werken wij uitsluitend op afspraak. Zo garanderen wij dat u altijd onze volledige aandacht krijgt. Tijdens een eerste afspraak bespreken wij uw wensen, nemen wij de maat en adviseren wij over de beste aanpak.</p>
         <p>Een eerste afspraak voor bruidsjurken duurt gemiddeld anderhalf uur. Bij overige kleding is de duur afhankelijk van de werkzaamheden.</p>
         <p>Wij gebruiken uitsluitend kwalitatieve materialen en technieken om een duurzaam en mooi resultaat te garanderen.</p>
       </div>
 
       <div class="about-section">
-        <h2>Waarom Q-Atelier</h2>
+        <h2 class="anim-fade-up">Waarom Q-Atelier</h2>
         <p>Wij onderscheiden ons door de persoonlijke aanpak en het oog voor detail. Bij Q-Atelier bent u geen nummer — elke klant en elk kledingstuk krijgt de aandacht die het verdient.</p>
         <p>Of het nu gaat om een bruidsjurk die perfect moet vallen op uw grote dag, een geliefde jurk die een nieuw leven verdient, of een eenvoudige reparatie — bij ons bent u in vertrouwde handen.</p>
       </div>
 
       <div class="about-section">
-        <h2>Wat onze klanten zeggen</h2>
+        <h2 class="anim-fade-up">Wat onze klanten zeggen</h2>
         <div class="photo-grid">
           <img src="https://dyshhxdimbjli.cloudfront.net/Review%20pictures/365987FD-9E6E-493E-8B83-71C1A3287C1F.png" alt="Klantrecensie" loading="lazy" />
           <img src="https://dyshhxdimbjli.cloudfront.net/Review%20pictures/unnamed-high.png" alt="Klantrecensie" loading="lazy" />
@@ -102,6 +102,22 @@
         lbImg.removeAttribute('src');
       });
     })();
+
+    // Scroll animations
+    var aObserver = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          if (el.classList.contains('anim-stagger')) {
+            Array.from(el.children).forEach(function(child, i) {
+              setTimeout(function() { child.classList.add('visible'); }, i * 150);
+            });
+          } else { el.classList.add('visible'); }
+          aObserver.unobserve(el);
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.anim-fade-up, .anim-stagger').forEach(function(el) { aObserver.observe(el); });
   </script>
 
   <footer>

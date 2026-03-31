@@ -30,10 +30,10 @@
 
   <main>
     <section class="page-section">
-      <h1>Diensten &amp; Prijzen</h1>
-      <p class="page-intro">Bij Q-Atelier verzorgen wij vakkundig maatwerk en aanpassingen voor bruidsjurken, galajurken, dagelijkse kleding en woningtextiel. Hieronder vindt u een overzicht van onze tarieven.</p>
+      <h1 class="anim-fade-up">Diensten &amp; Prijzen</h1>
+      <p class="page-intro anim-fade-up">Bij Q-Atelier verzorgen wij vakkundig maatwerk en aanpassingen voor bruidsjurken, galajurken, dagelijkse kleding en woningtextiel. Hieronder vindt u een overzicht van onze tarieven.</p>
 
-      <div class="diensten-intro-grid">
+      <div class="diensten-intro-grid anim-stagger">
         <div class="diensten-intro-card">
           <img src="https://dyshhxdimbjli.cloudfront.net/Diensten/Kleding_vermaken_en_repareren.png" alt="Kleding vermaken en repareren" loading="lazy" />
           <h3>Kleding vermaken en repareren</h3>
@@ -192,6 +192,23 @@
       </div>
     </section>
   </main>
+
+  <script>
+    var observer = new IntersectionObserver(function(entries) {
+      entries.forEach(function(entry) {
+        if (entry.isIntersecting) {
+          var el = entry.target;
+          if (el.classList.contains('anim-stagger')) {
+            Array.from(el.children).forEach(function(child, i) {
+              setTimeout(function() { child.classList.add('visible'); }, i * 150);
+            });
+          } else { el.classList.add('visible'); }
+          observer.unobserve(el);
+        }
+      });
+    }, { threshold: 0.15 });
+    document.querySelectorAll('.anim-fade-up, .anim-stagger').forEach(function(el) { observer.observe(el); });
+  </script>
 
   <footer>
     <p>&copy; 2026 Q-Atelier — Zeist</p>
