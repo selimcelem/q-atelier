@@ -864,36 +864,61 @@ footer {
 
 /* ── Lightbox ───────────────────────────────────────────── */
 .lightbox {
-  display: none;
   position: fixed;
-  inset: 0;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   z-index: 9999;
-  background: rgba(0, 0, 0, 0.85);
-  justify-content: center;
-  align-items: center;
-  cursor: pointer;
+  visibility: hidden;
+  opacity: 0;
+  transition: opacity 0.25s ease, visibility 0.25s ease;
 }
 
 .lightbox.active {
-  display: flex;
+  visibility: visible;
+  opacity: 1;
+}
+
+.lightbox-backdrop {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.9);
 }
 
 .lightbox img {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   max-width: 90vw;
-  max-height: 90vh;
+  max-height: 85vh;
+  width: auto;
+  height: auto;
   object-fit: contain;
   border-radius: 8px;
-  box-shadow: 0 8px 40px rgba(0, 0, 0, 0.4);
+  -webkit-touch-callout: none;
 }
 
 .lightbox-close {
   position: absolute;
-  top: 1.5rem;
-  right: 2rem;
-  font-size: 2.5rem;
+  top: 1rem;
+  right: 1.2rem;
+  z-index: 10000;
+  width: 44px;
+  height: 44px;
+  font-size: 2rem;
+  line-height: 44px;
+  text-align: center;
   color: #fff;
+  background: rgba(0, 0, 0, 0.5);
+  border: none;
+  border-radius: 50%;
   cursor: pointer;
-  line-height: 1;
+  -webkit-tap-highlight-color: transparent;
 }
 
 /* ── Responsive ──────────────────────────────────────────── */
