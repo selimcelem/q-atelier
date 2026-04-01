@@ -4,7 +4,7 @@
 
 A production website and booking system for a bridal tailoring atelier in Zeist, Netherlands. The project replaced a €15/month website builder (JouwWeb) with a fully serverless AWS solution running at ~€0/month. The site serves real customers with an interactive booking calendar, automated email confirmations with calendar invites, and a manual approval workflow for the business owner.
 
-Live: [q-atelier.nl](https://q-atelier.nl)
+Live: [q-atelier.nl](https://www.q-atelier.nl)
 
 ---
 
@@ -82,4 +82,4 @@ This project demonstrates the following AWS concepts in a real production enviro
 
 ## Live Site
 
-[https://q-atelier.nl](https://q-atelier.nl)
+[https://www.q-atelier.nl](https://www.q-atelier.nl)
