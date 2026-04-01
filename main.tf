@@ -45,10 +45,9 @@ module "database" {
 }
 
 module "notifications" {
-  source         = "./modules/notifications"
-  project_name   = var.project_name
-  sibel_email    = var.sibel_email
-  ses_from_email = var.ses_from_email
+  source       = "./modules/notifications"
+  project_name = var.project_name
+  owner_email  = var.owner_email
 }
 
 module "api" {
@@ -57,7 +56,6 @@ module "api" {
   bookings_table_arn  = module.database.bookings_table_arn
   bookings_table_name = module.database.bookings_table_name
   ses_topic_arn       = module.notifications.ses_topic_arn
-  sibel_email         = var.sibel_email
-  ses_from_email      = var.ses_from_email
+  owner_email         = var.owner_email
   resend_api_key      = var.resend_api_key
 }

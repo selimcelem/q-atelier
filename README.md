@@ -138,7 +138,7 @@ aws cloudfront create-invalidation \
 | Variable | Description |
 |----------|-------------|
 | `BOOKINGS_TABLE` | DynamoDB table name |
-| `SIBEL_EMAIL` | Owner notification email address |
+| `OWNER_EMAIL` | Owner notification email address |
 | `RESEND_API_KEY` | Resend API key for sending emails |
 
 ---

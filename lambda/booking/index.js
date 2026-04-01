@@ -6,7 +6,7 @@ const { sendBookingEmail, sendPlainEmail, sendHtmlEmail, sendNotificationWithIcs
 const dynamo = new DynamoDBClient({});
 
 const TABLE = process.env.BOOKINGS_TABLE;
-const SIBEL_EMAIL = process.env.SIBEL_EMAIL;
+const OWNER_EMAIL = process.env.OWNER_EMAIL;
 const FROM_EMAIL = 'info@q-atelier.nl'; // passed to email helpers but ignored (Resend uses its own FROM)
 
 // Day-specific slots: 0=Sun, 1=Mon, ..., 6=Sat
@@ -226,7 +226,7 @@ async function createBooking(event) {
 </div></body></html>`;
 
   await sendHtmlEmail({
-    to: SIBEL_EMAIL,
+    to: OWNER_EMAIL,
     from: FROM_EMAIL,
     subject: `Nieuwe afspraak aanvraag — ${name} op ${fd} om ${time_slot}`,
     html: ownerHtml,
@@ -284,7 +284,7 @@ async function handleAction(event) {
 
     const ownerIcs = generateICS({ name, email, date, time_slot, service });
     await sendNotificationWithIcs({
-      to: SIBEL_EMAIL,
+      to: OWNER_EMAIL,
       from: FROM_EMAIL,
       subject: `Afspraak bevestigd — ${name} op ${fd} om ${time_slot}`,
       body:
@@ -319,7 +319,7 @@ async function handleAction(event) {
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
     await sendPlainEmail({
-      to: SIBEL_EMAIL,
+      to: OWNER_EMAIL,
       from: FROM_EMAIL,
       subject: `Afspraak afgewezen — ${name}`,
       body:
@@ -489,7 +489,7 @@ async function handleReschedule(event) {
   });
 
   await sendPlainEmail({
-    to: SIBEL_EMAIL,
+    to: OWNER_EMAIL,
     from: FROM_EMAIL,
     subject: `Nieuw tijdstip voorgesteld aan ${name}`,
     body: `Je hebt een nieuw tijdstip voorgesteld aan ${name}: ${fnd} om ${new_time_slot}.\r\nDe klant ontvangt een e-mail.`,
@@ -589,7 +589,7 @@ async function handleRespond(event) {
     // Owner gets notification with .ics (not a copy of customer email)
     const ownerIcs = generateICS({ name, email, date: suggestedDate, time_slot: suggestedTime, service });
     await sendNotificationWithIcs({
-      to: SIBEL_EMAIL,
+      to: OWNER_EMAIL,
       from: FROM_EMAIL,
       subject: `${name} heeft uw voorgestelde datum geaccepteerd`,
       body:
@@ -622,7 +622,7 @@ async function handleRespond(event) {
 
     const whatsappUrl = `https://api.whatsapp.com/send?phone=${phone.replace(/[^0-9]/g, '')}`;
     await sendPlainEmail({
-      to: SIBEL_EMAIL,
+      to: OWNER_EMAIL,
       from: FROM_EMAIL,
       subject: `${name} heeft het nieuwe tijdstip afgewezen`,
       body:

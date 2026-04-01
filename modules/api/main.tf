@@ -2,11 +2,7 @@ variable "project_name" { type = string }
 variable "bookings_table_arn" { type = string }
 variable "bookings_table_name" { type = string }
 variable "ses_topic_arn" { type = string }
-variable "sibel_email" {
-  type      = string
-  sensitive = true
-}
-variable "ses_from_email" {
+variable "owner_email" {
   type      = string
   sensitive = true
 }
@@ -75,7 +71,7 @@ resource "aws_lambda_function" "booking" {
   environment {
     variables = {
       BOOKINGS_TABLE = var.bookings_table_name
-      SIBEL_EMAIL    = var.sibel_email
+      OWNER_EMAIL    = var.owner_email
       RESEND_API_KEY = var.resend_api_key
     }
   }

@@ -48,8 +48,7 @@ jobs:
         run: terraform plan -no-color -out=tfplan
         env:
           TF_VAR_domain_name:    ${{ secrets.TF_VAR_DOMAIN_NAME }}
-          TF_VAR_sibel_email:    ${{ secrets.TF_VAR_SIBEL_EMAIL }}
-          TF_VAR_ses_from_email: ${{ secrets.TF_VAR_SES_FROM_EMAIL }}
+          TF_VAR_owner_email:    ${{ secrets.TF_VAR_OWNER_EMAIL }}
           TF_VAR_resend_api_key: ${{ secrets.TF_VAR_RESEND_API_KEY }}
 
       - name: Comment Plan on PR
@@ -74,8 +73,7 @@ jobs:
         run: terraform apply -auto-approve tfplan
         env:
           TF_VAR_domain_name:    ${{ secrets.TF_VAR_DOMAIN_NAME }}
-          TF_VAR_sibel_email:    ${{ secrets.TF_VAR_SIBEL_EMAIL }}
-          TF_VAR_ses_from_email: ${{ secrets.TF_VAR_SES_FROM_EMAIL }}
+          TF_VAR_owner_email:    ${{ secrets.TF_VAR_OWNER_EMAIL }}
           TF_VAR_resend_api_key: ${{ secrets.TF_VAR_RESEND_API_KEY }}
 
   deploy-frontend:
