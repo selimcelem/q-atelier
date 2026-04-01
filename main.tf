@@ -55,7 +55,6 @@ module "api" {
   project_name        = var.project_name
   bookings_table_arn  = module.database.bookings_table_arn
   bookings_table_name = module.database.bookings_table_name
-  ses_topic_arn       = module.notifications.ses_topic_arn
   owner_email         = var.owner_email
   resend_api_key      = var.resend_api_key
 }

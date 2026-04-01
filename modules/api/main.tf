@@ -1,7 +1,6 @@
 variable "project_name" { type = string }
 variable "bookings_table_arn" { type = string }
 variable "bookings_table_name" { type = string }
-variable "ses_topic_arn" { type = string }
 variable "owner_email" {
   type      = string
   sensitive = true
@@ -42,12 +41,6 @@ resource "aws_iam_role_policy" "lambda" {
         Action   = ["dynamodb:GetItem", "dynamodb:PutItem", "dynamodb:Query", "dynamodb:UpdateItem", "dynamodb:Scan"]
         Resource = [var.bookings_table_arn, "${var.bookings_table_arn}/index/*"]
       },
-      {
-        # SES - send emails (legacy, kept for fallback)
-        Effect   = "Allow"
-        Action   = ["ses:SendEmail", "ses:SendRawEmail"]
-        Resource = "*"
-      }
     ]
   })
 }
