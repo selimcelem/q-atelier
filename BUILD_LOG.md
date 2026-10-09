@@ -201,6 +201,14 @@ Resources created successfully despite CloudFront failure:
 - Added intro section with images to diensten page
 - Mobile-responsive card layout
 
+### 2026-10-09 — Certificate renewal fix, Node.js 22, SES cleanup
+- ACM could not auto-renew the certificate: DNS had moved from the registrar to Cloudflare
+  in May 2026 without the two ACM validation CNAMEs. Re-added them in Cloudflare (DNS only);
+  the certificate renewed the same day.
+- Lambda runtime upgraded from Node.js 20 (end of support) to Node.js 22, in Terraform and in
+  the CI `node-version`. Booking API verified unchanged before and after.
+- Deleted the legacy SES domain identity; email has gone through Resend since the migration.
+
 ---
 
 ## Architecture Decisions
@@ -209,7 +217,7 @@ Resources created successfully despite CloudFront failure:
 |----------|--------|--------|
 | IaC | Terraform | Industry standard, job market, multi-cloud |
 | State backend | S3 + DynamoDB | Standard pattern, free tier |
-| DNS | Existing registrar (not Route 53) | Free, Route 53 adds no SEO benefit |
+| DNS | Cloudflare free plan (moved from registrar DNS, May 2026) — not Route 53 | Free, Route 53 adds no SEO benefit |
 | SSL cert region | us-east-1 | Required by CloudFront |
 | Frontend | Vanilla HTML/CSS/JS | No build tooling for a simple site |
 | Calendar invites | `.ics` iCalendar format | Native on iPhone, Android, Gmail, Outlook |

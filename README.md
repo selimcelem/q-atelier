@@ -18,13 +18,13 @@ Browser → API Gateway (REST) → Lambda (Node.js 20) → DynamoDB
 |-------|---------|
 | Frontend | Static HTML/CSS/JS on S3 + CloudFront CDN |
 | API | AWS API Gateway (REST, `prod` stage) |
-| Compute | AWS Lambda (Node.js 20) |
+| Compute | AWS Lambda (Node.js 22) |
 | Database | Amazon DynamoDB (on-demand capacity) |
 | Email | Resend API (HTML emails + .ics calendar attachments) |
 | SSL/TLS | AWS Certificate Manager (ACM) |
 | IaC | Terraform (remote state on S3 + DynamoDB lock) |
 | CI/CD | GitHub Actions (plan on PR, apply on merge) |
-| Domain | q-atelier.nl — DNS on existing registrar, ALIAS to CloudFront |
+| Domain | q-atelier.nl — registered at Vimexx, DNS on Cloudflare (free plan), flattened CNAME to CloudFront |
 
 ---
 
@@ -151,7 +151,7 @@ All resources are provisioned via Terraform:
 - **CloudFront** — CDN distribution with Origin Access Control
 - **ACM** — SSL/TLS certificate (us-east-1)
 - **API Gateway** — REST API with Lambda proxy integration
-- **Lambda** — Booking handler (Node.js 20)
+- **Lambda** — Booking handler (Node.js 22)
 - **DynamoDB** — Bookings table with GSIs (`month-index`, `token-index`)
 - **IAM** — Least-privilege Lambda execution role
 
@@ -175,6 +175,24 @@ q-atelier/
 ├── outputs.tf            Terraform outputs
 └── backend.tf            S3 remote state configuration
 ```
+
+---
+
+## Operations Notes
+
+- **DNS is on Cloudflare** (free plan); the domain itself stays registered at Vimexx. The apex
+  and `www` are CNAMEs to CloudFront with the proxy **off** ("DNS only").
+- **Keep the two ACM validation CNAMEs** (`_<hash>.q-atelier.nl` and `_<hash>.www.q-atelier.nl`,
+  DNS only) permanently. ACM needs them for every automatic renewal. In October 2026 renewal
+  failed because they were not carried over when DNS moved to Cloudflare; re-adding them fixed
+  it. Any future DNS move must copy them — the values are in the ACM console under the
+  certificate's domains.
+- **Email is Resend only.** Its records (`resend._domainkey` TXT, `send` MX/TXT) live in
+  Cloudflare. The legacy SES identity was deleted in October 2026. The MX, SPF, SRV and
+  autoconfig records belong to the owner's own mailbox host — leave them alone.
+- **Lambda runtime is Node.js 22.** Node.js 20 reached end of support in Lambda and updates to
+  it were blocked from 2026-09-30. When Node.js 22 reaches end of support, bump `runtime` in
+  `modules/api/main.tf` and `node-version` in `.github/workflows/deploy.yml` together.
 
 ---
 
